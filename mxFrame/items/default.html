@@ -1,11 +1,11 @@
 <demo_button>
 	<preload>
-		confirm('弹窗');
+		alert('Prepare to render the demo button');
 	</preload>
 	<item>
-		<button>{$html}</button>
+		<button>{$otherinfo} {$html}</button>
 	</item>
 	<callback>
-		console.log('Finish rendering a button');
+		console.log('Finish rendering.');
 	</callback>
-</demo_button>
+<demo_button>

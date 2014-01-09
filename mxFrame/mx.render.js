@@ -17,16 +17,16 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 	$mx.preloadItemContainerId = 'mxFramePreloadItemContainer';
 	$mx.preloadItemHTML = 'mxFrame/items/default.html';
 	$mx.preloadItemCSS = 'mxFrame/items/default.css';
-	$mx.preloadItemJS = 'mxFrame/items/default.js';
+	$mx.preloadModelJS = 'mxFrame/models/default.js';
 	$mx.autoSetIdCounter = 0;
-	$mx.logSwitcher = 'OFF';
+	$mx.logSwitcher = 'ON';
 	$mx.item = {};
 	$mx.itemAttrs = {};
 
 	$mx.preload = function(){
 		$('body').after('<div style = "display:none;" id = "' + $mx.preloadItemContainerId + '"></div>');
 		$('head').append('<link rel = "stylesheet" href = "' + $mx.preloadItemCSS + '" />');
-		//$('body').after('<script type = "text/javascript" src = "' + $mx.preloadItemJS + '"></script>');
+		$('body').after('<script type = "text/javascript" src = "' + $mx.preloadModelJS + '"></script>');
 		$('#' + $mx.preloadItemContainerId).load($mx.preloadItemHTML,function(){
 			$mx.renderItems();
 		});
@@ -80,18 +80,18 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 		}
 
 		//Render
-		switch (itemType){
-			//Normal render
-			default:
-				var itemTemplateHTML = $itemTemplate.find('item').html();
-				if (itemHTML != null){
-					var itemReplacementHTML = itemTemplateHTML.replace(/\{\$html\}/gm,itemHTML);
-				}else{
-					var itemReplacementHTML = itemTemplateHTML;
-				}
-				$item.html(itemReplacementHTML);
-				//NOTICE: No "break;" here, so all special modify below will base on input item html code.
+		var itemTemplateHTML = $itemTemplate.find('item').html();
+		if (itemHTML != null){
+			var itemReplacementHTML = itemTemplateHTML.replace(/\{\$html\}/gm,itemHTML);
+		}else{
+			var itemReplacementHTML = itemTemplateHTML;
 		}
+		for (var attrName in $mx.itemAttrs){
+			var reg = new RegExp('\\\{\\\$' + attrName + '\\\}','gm');
+			log(reg);
+			itemReplacementHTML = itemReplacementHTML.replace(reg,$mx.itemAttrs[attrName]);
+		}
+		$item.html(itemReplacementHTML);
 
 		//Callback
 		var itemTemplateCallback = $itemTemplate.find('callback').html();
@@ -99,10 +99,6 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 
 		$mx.item = {};
 		$mx.itemAttrs = {};
-	}
-
-	$mx.special.renderTable = function(){
-
 	}
 })($mx);
 
