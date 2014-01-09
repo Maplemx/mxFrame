@@ -88,6 +88,7 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 
 		//Render
 		var itemTemplateHTML = $itemTemplate.find('item').html();
+		if (itemTemplateHTML == null){itemTemplateHTML = '';}
 		if (itemHTML != null){
 			var itemReplacementHTML = itemTemplateHTML.replace(/\{\$html\}/gm,itemHTML);
 		}else{
