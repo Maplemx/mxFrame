@@ -71,9 +71,15 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 		}
 		$item.attr('class',itemClass);
 
+		//Load Template
+		var $itemTemplate = $('#' + $mx.preloadItemContainerId).find(itemName);
+		if (!$itemTemplate.length > 0){
+			log('Fail to render an item that have no template:');
+			log($item);
+		}
+
 		//Preload
-		var $itemTemplate = $('#' + $mx.preloadItemContainerId).find(itemName),
-			itemTemplatePreload = $itemTemplate.find('preload').html();
+		var itemTemplatePreload = $itemTemplate.find('preload').html();
 		$mx.item = $itemTemplate;
 		if (itemTemplatePreload != null){
 			eval(itemTemplatePreload);
