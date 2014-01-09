@@ -76,6 +76,7 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 		if (!$itemTemplate.length > 0){
 			log('Fail to render an item that have no template:');
 			log($item);
+			return false;
 		}
 
 		//Preload
