@@ -14,8 +14,6 @@ Main
 ***/
 if (typeof($mx) == 'undefined'){var $mx = {};}
 (function($mx){
-	//$mx.preloadItemContainerId = 'mxFramePreloadItemContainer';
-	//$mx.preloadItemHTML = 'mxFrame/items/default.html';
 	$mx.preloadItemXML = 'mxFrame/items/default.xml';
 	$mx.preloadItemCSS = 'mxFrame/items/default.css';
 	$mx.preloadModelJS = 'mxFrame/models/default.js';
@@ -34,17 +32,24 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 		XMLObject.open('GET',$mx.preloadItemXML,false);
 		XMLObject.send();
 		XMLDoc = XMLObject.responseXML;
-		return XMLDoc;
+		if(XMLDoc == null){
+			log('Not found: item template XML.');
+			return false;
+		}else{
+			return XMLDoc;
+		}
 	}
 
 	$mx.preload = function(){
-		$mx.itemTemplates = $mx.loadXML($mx.preloadItemJSON);
+		$mx.itemTemplates = $mx.loadXML($mx.preloadItemXML);
 		$('head').append('<link rel = "stylesheet" href = "' + $mx.preloadItemCSS + '" />');
 		$('body').after('<script type = "text/javascript" src = "' + $mx.preloadModelJS + '"></script>');
-		//$('#' + $mx.preloadItemContainerId).load($mx.preloadItemHTML,function(){
-		$mx.renderItems();
-		//});
-		return;
+		if ($mx.itemTemplates){
+			$mx.renderItems();
+			return;
+		}else{
+			return false;
+		}
 	}
 
 	$mx.renderItems = function($scanElement){
@@ -58,6 +63,10 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 	}
 
 	$mx.renderItem = function($item){
+		if ($item == null){
+			log('Function "$mx.renderItem($jQuerySelector)" require a selector!');
+			return false;
+		}
 		//Information Preparation
 		$mx.itemAttrs = $item.attrs();
 		var itemName = $mx.itemAttrs['name'],
@@ -68,7 +77,7 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 			itemHTML = $item.html();
 
 		if (itemRenderStatus == 1){
-			log('Skip an rendered item:');
+			log('Skip a rendered item:');
 			log($item);
 			return false;
 		}
@@ -104,18 +113,18 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 		$mx.item = itemTemplate[0];
 
 		//Preload
-		var itemTemplatePreload = $mx.item.getElementsByTagName('preload')[0].textContent;
+		var itemTemplatePreload = $mx.item.getElementsByTagName('preload')[0];
 		if (itemTemplatePreload){
-			eval(itemTemplatePreload);
+			eval(itemTemplatePreload.textContent);
 		}
-		
+
 		//Render
-		var itemTemplateHTML = $mx.item.getElementsByTagName('item')[0].textContent;
+		var itemTemplateHTML = $mx.item.getElementsByTagName('item')[0];
 		if (itemTemplateHTML){
 			if (itemHTML != null){
-				var itemReplacementHTML = itemTemplateHTML.replace(/\{\$html\}/gm,itemHTML);	
+				var itemReplacementHTML = itemTemplateHTML.textContent.replace(/\{\$html\}/gm,itemHTML);	
 			}else{
-				var itemReplacementHTML = itemTemplateHTML;
+				var itemReplacementHTML = itemTemplateHTML.textContent;
 			}
 			for (var attrName in $mx.itemAttrs){
 				var reg = new RegExp('\\\{\\\$' + attrName + '\\\}','gm');
@@ -127,9 +136,9 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 		}
 		
 		//Callback
-		var itemTemplateCallback = $mx.item.getElementsByTagName('callback')[0].textContent;
+		var itemTemplateCallback = $mx.item.getElementsByTagName('callback')[0];
 		if (itemTemplateCallback){
-			eval(itemTemplateCallback);
+			eval(itemTemplateCallback.textContent);
 		}
 
 		$item.attr('mxframe_rendered',1);
