@@ -14,22 +14,37 @@ Main
 ***/
 if (typeof($mx) == 'undefined'){var $mx = {};}
 (function($mx){
-	$mx.preloadItemContainerId = 'mxFramePreloadItemContainer';
-	$mx.preloadItemHTML = 'mxFrame/items/default.html';
+	//$mx.preloadItemContainerId = 'mxFramePreloadItemContainer';
+	//$mx.preloadItemHTML = 'mxFrame/items/default.html';
+	$mx.preloadItemXML = 'mxFrame/items/default.xml';
 	$mx.preloadItemCSS = 'mxFrame/items/default.css';
 	$mx.preloadModelJS = 'mxFrame/models/default.js';
 	$mx.autoSetIdCounter = 0;
 	$mx.logSwitcher = 'ON';
+	$mx.itemTemplates = {};
 	$mx.item = {};
 	$mx.itemAttrs = {};
 
+	$mx.loadXML = function(XMLLocation){
+		if (window.XMLHttpRequest){
+			var XMLObject = new XMLHttpRequest();
+		}else{
+			var XMLObject = new ActiveXObject('Microsoft.XMLHTTP');
+		}
+		XMLObject.open('GET',$mx.preloadItemXML,false);
+		XMLObject.send();
+		XMLDoc = XMLObject.responseXML;
+		return XMLDoc;
+	}
+
 	$mx.preload = function(){
-		$('body').after('<div style = "display:none;" id = "' + $mx.preloadItemContainerId + '"></div>');
+		$mx.itemTemplates = $mx.loadXML($mx.preloadItemJSON);
 		$('head').append('<link rel = "stylesheet" href = "' + $mx.preloadItemCSS + '" />');
 		$('body').after('<script type = "text/javascript" src = "' + $mx.preloadModelJS + '"></script>');
-		$('#' + $mx.preloadItemContainerId).load($mx.preloadItemHTML,function(){
-			$mx.renderItems();
-		});
+		//$('#' + $mx.preloadItemContainerId).load($mx.preloadItemHTML,function(){
+		$mx.renderItems();
+		//});
+		return;
 	}
 
 	$mx.renderItems = function($scanElement){
@@ -39,6 +54,7 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 			var $item = $(this);
 			$mx.renderItem($item);
 		});
+		return;
 	}
 
 	$mx.renderItem = function($item){
@@ -72,41 +88,46 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 		$item.attr('class',itemClass);
 
 		//Load Template
-		var $itemTemplate = $('#' + $mx.preloadItemContainerId).find(itemName);
-		if (!$itemTemplate.length > 0){
+		itemTemplate = $mx.itemTemplates.getElementsByTagName(itemName);
+		if (!itemTemplate.length > 0){
 			log('Fail to render an item that have no template:');
 			log($item);
 			return false;
 		}
+		$mx.item = itemTemplate[0];
 
 		//Preload
-		var itemTemplatePreload = $itemTemplate.find('preload').html();
-		$mx.item = $itemTemplate;
-		if (itemTemplatePreload != null){
+		var itemTemplatePreload = $mx.item.getElementsByTagName('preload')[0].textContent;
+		if (itemTemplatePreload){
 			eval(itemTemplatePreload);
 		}
-
+		
 		//Render
-		var itemTemplateHTML = $itemTemplate.find('item').html();
-		if (itemTemplateHTML == null){itemTemplateHTML = '';}
-		if (itemHTML != null){
-			var itemReplacementHTML = itemTemplateHTML.replace(/\{\$html\}/gm,itemHTML);
+		var itemTemplateHTML = $mx.item.getElementsByTagName('item')[0].textContent;
+		if (itemTemplateHTML){
+			if (itemHTML != null){
+				var itemReplacementHTML = itemTemplateHTML.replace(/\{\$html\}/gm,itemHTML);	
+			}else{
+				var itemReplacementHTML = itemTemplateHTML;
+			}
+			for (var attrName in $mx.itemAttrs){
+				var reg = new RegExp('\\\{\\\$' + attrName + '\\\}','gm');
+				itemReplacementHTML = itemReplacementHTML.replace(reg,$mx.itemAttrs[attrName]);
+			}
+			$item.html(itemReplacementHTML);
 		}else{
-			var itemReplacementHTML = itemTemplateHTML;
+			log('[' + itemName + '] have no item HTML template.');
 		}
-		for (var attrName in $mx.itemAttrs){
-			var reg = new RegExp('\\\{\\\$' + attrName + '\\\}','gm');
-			log(reg);
-			itemReplacementHTML = itemReplacementHTML.replace(reg,$mx.itemAttrs[attrName]);
-		}
-		$item.html(itemReplacementHTML);
-
+		
 		//Callback
-		var itemTemplateCallback = $itemTemplate.find('callback').html();
-		eval(itemTemplateCallback);
+		var itemTemplateCallback = $mx.item.getElementsByTagName('callback')[0].textContent;
+		if (itemTemplateCallback){
+			eval(itemTemplateCallback);	
+		}
 
 		$mx.item = {};
 		$mx.itemAttrs = {};
+		return;
 	}
 })($mx);
 
@@ -126,11 +147,22 @@ jQuery Plug-in
 
 		return tagAttrsResult;
 	}
+
+	$.fn.render = function(){
+		$mx.renderItem($(this));
+		return;
+	}
 })(jQuery)
 
 /***
 Log Tools
 ***/
 function log(content){
-	if ($mx.logSwitcher == 'ON'){console.log(content);}
+	if ($mx.logSwitcher == 'ON'){
+		if (content != null){
+			console.log(content);
+		}else{
+			console.log('nothing!');
+		}
+	}
 }
