@@ -64,7 +64,14 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 			itemId = $mx.itemAttrs['id'],
 			itemClass = $mx.itemAttrs['class'],
 			itemType = $mx.itemAttrs['type'],
+			itemRenderStatus = $mx.itemAttrs['mxframe_rendered'],
 			itemHTML = $item.html();
+
+		if (itemRenderStatus == 1){
+			log('Skip an rendered item:');
+			log($item);
+			return false;
+		}
 
 		if (itemName == null){
 			log('Fail to render an item without name:');
@@ -122,9 +129,10 @@ if (typeof($mx) == 'undefined'){var $mx = {};}
 		//Callback
 		var itemTemplateCallback = $mx.item.getElementsByTagName('callback')[0].textContent;
 		if (itemTemplateCallback){
-			eval(itemTemplateCallback);	
+			eval(itemTemplateCallback);
 		}
 
+		$item.attr('mxframe_rendered',1);
 		$mx.item = {};
 		$mx.itemAttrs = {};
 		return;
