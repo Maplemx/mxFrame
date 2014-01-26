@@ -1,0 +1,44 @@
+<mxFrameItemTemplates>
+	<demo>
+		<css>
+			<![CDATA[
+				.demo_default{
+					position: fixed;
+					top: 50px;
+					left: 50%;
+					height: 150px;
+					width: 300px;
+					margin-left: -100px;
+					border: 1px #FF0000 solid;
+					text-align:center;
+				}
+			]]>
+		</css>
+		<preload-once>
+			<![CDATA[
+				alert('preloading!');
+			]]>
+		</preload-once>
+		<html>
+			<![CDATA[
+				<label>input your name here:</label>
+				<input ng-model = "name" placeholder = "yourname"/>
+				<h3>Welcome {{name}}!</h3>
+				<item mx-name = "frameInfo"></item>
+			]]>
+		</html>
+		<callback>
+			<![CDATA[
+				console.log('done!');
+			]]>
+		</callback>
+	</demo>
+
+	<frameInfo>
+		<html>
+			<![CDATA[
+				<p>mxRender v0.1 Beta<br />with argular.js</p>
+			]]>
+		</html>
+	</frameInfo>
+</mxFrameItemTemplates>

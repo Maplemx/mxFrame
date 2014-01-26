@@ -28,16 +28,19 @@
 	$mx.render.configures.loadItemsCss = true;
 	$mx.render.configures.itemsCssPath = 'items/default.css';
 	
-	//Global Variables
-	$mx.render.configures.autoSetIdCounter = 0;
-
  	/**
  	 * Main
  	 */
 	(function($mx){
+		$mx.autoSetIdCounter = 0;
+		$mx.publicCSS = document.createElement('style');
+		$mx.addedCSS = [];
+		$mx.runPreloadOnce = [];
+		$mx.runCallbackOnce = [];
+
 		$mx.autoStart = function(){
 			$mx.preload();
-			$mx.renderItems(document.getElementsByTagName('body')[0],1);
+			$mx.renderItems(document.body,1);
 			return;
 		}
 
@@ -68,6 +71,7 @@
 				var angularLoader = document.createElement('script');
 				angularLoader.setAttribute('src',confs.angularPath);
 				document.getElementsByTagName('html')[0].appendChild(angularLoader);
+				document.getElementsByTagName('html')[0].setAttribute('ng-app','');
 			}
 
 			//load jQuery/Zepto
@@ -84,10 +88,87 @@
 				itemsCssLoader.setAttribute('href',confs.itemsCssPath);
 				document.getElementsByTagName('head')[0].appendChild(itemsCssLoader);
 			}
+
+			//create public CSS area
+			$mx.publicCSS.setAttribute('type','text/css');
+			document.getElementsByTagName('head')[0].appendChild($mx.publicCSS);
 		}
 
 		$mx.renderItem = function(renderElement){
-			
+			//prepare information
+			var renderElementAttrs = elementAttributes(renderElement);
+				itemTemplateName = renderElementAttrs['mx-name'],
+				itemId = renderElementAttrs['id'],
+				itemClass = renderElementAttrs['class'];
+			if (typeof(itemTemplateName) == 'undefined'){
+				log([renderElement,'has no attribute "mx-name".'],2);
+				return false;
+			}
+			if (typeof(itemId) == 'undefined'){
+				renderElement.setAttribute('id',itemTemplateName + '_' + $mx.autoSetIdCounter);
+				$mx.autoSetIdCounter++;
+			}
+			if (typeof(itemClass) == 'undefined'){
+				renderElement.setAttribute('class',itemTemplateName + '_default');
+			}
+
+			//load template
+			var itemTemplate = $mx.itemTemplates.getElementsByTagName(itemTemplateName)[0];
+			if (typeof(itemTemplate) == 'undefined'){
+				log(renderElement + 'has no template.',2);
+				return false;
+			}
+			var	itemTemplateCSS = itemTemplate.getElementsByTagName('css')[0],
+				itemTemplatePreloadOnce = itemTemplate.getElementsByTagName('preload-once')[0],
+				itemTemplatePreload = itemTemplate.getElementsByTagName('preload')[0],
+				itemTemplateHTML = itemTemplate.getElementsByTagName('html')[0],
+				itemTemplateCallback = itemTemplate.getElementsByTagName('callback-once')[0],
+				itemTemplateCallback = itemTemplate.getElementsByTagName('callback')[0],
+				renderingItemHTML = renderElement.innerHTML;
+
+			//add additional CSS
+			if (typeof(itemTemplateCSS) != 'undefined' && !inArray(itemTemplateName,$mx.addedCSS)){
+				$mx.publicCSS.innerHTML += itemTemplateCSS.textContent;
+				$mx.addedCSS.push(itemTemplateName);
+			}
+
+			//do preload-once JS job
+			if (typeof(itemTemplatePreloadOnce) != 'undefined' && !inArray(itemTemplateName,$mx.runPreloadOnce)){
+				eval(itemTemplatePreloadOnce.textContent);
+				$mx.runPreloadOnce.push(itemTemplateName);
+			}
+
+			//do preload JS job
+			if (typeof(itemTemplatePreload) != 'undefined'){
+				eval(itemTemplatePreload.textContent);
+			}
+
+			//render item
+			if (typeof(itemTemplateHTML) != 'undefined'){
+				if (renderingItemHTML != null){
+					var itemReplacementHTML = itemTemplateHTML.textContent.replace(/\{\$html\}/gm,renderingItemHTML);
+				}else{
+					var itemReplacementHTML = itemTemplateHTML.textContent;
+				}
+				for (var attributeName in renderElementAttrs){
+					var reg = new RegExp('\\\{\\\$' + attributeName + '\\\}','gm');
+					itemReplacementHTML = itemReplacementHTML.replace(reg,renderElementAttrs[attributeName]);
+				}
+				renderElement.innerHTML = itemReplacementHTML;
+			}
+
+			//do callback-once JS job
+			if (typeof(itemTemplateCallbackOnce) != 'undefined' && !inArray(itemTemplateName,$mx.runCallbackOnce)){
+				eval(itemTemplateCallbackOnce.textContent);
+				$mx.runCallbackOnce.push(itemTemplateName);
+			}
+
+			//do callback JS job
+			if (typeof(itemTemplateCallback) != 'undefined'){
+				eval(itemTemplateCallback.textContent);
+			}
+
+			$mx.renderItems(renderElement);
 		}
 
 		$mx.renderItems = function(renderElement,isRoot){
@@ -122,7 +203,7 @@
 	}
 
 	/**
-	 * Log Tool
+	 * Useful Functions
 	 */
 	function log(content,type){
 		if ($mx.render.configures.logSwitcher){
@@ -143,4 +224,24 @@
 			}
 		}
 		return;
+	}
+
+	function inArray(item,container){
+		for (var i = 0;i < container.length;i++){
+			if (item == container[i]){
+				return true;
+			}
+		}
+		return false;
+	}
+
+	function elementAttributes(element){
+		var elementAttrs = element.attributes,
+			elementAttrsResult = {};
+
+		for(var i = 0;i < elementAttrs.length;i++){
+			elementAttrsResult[elementAttrs[i].name.toLowerCase()] = elementAttrs[i].value;
+		}
+
+		return elementAttrsResult;
 	}
