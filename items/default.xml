@@ -24,7 +24,8 @@
 				<label>input your name here:</label>
 				<input ng-model = "name" placeholder = "yourname"/>
 				<h3>Welcome {{name}}!</h3>
-				<item mx-name = "frameInfo"></item>
+				<p><item mx-name = "frameInfo"></item></p>
+				<p><item mx-name = "itemXML"></item></p>
 			]]>
 		</html>
 		<callback>
@@ -37,8 +38,16 @@
 	<frameInfo>
 		<html>
 			<![CDATA[
-				<p>mxRender v0.1 Beta<br />with argular.js</p>
+				mxRender v0.1 Beta<br />with argular.js
 			]]>
 		</html>
 	</frameInfo>
+
+	<itemXML>
+		<html>
+			<![CDATA[
+				<a href = "items/default.xml">Click here to see item code.</a>
+			]]>
+		</html>
+	</itemXML>
 </mxFrameItemTemplates>

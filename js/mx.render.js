@@ -8,7 +8,7 @@
  	/**
  	 * Configure
 	 */
-	//Genral Control Switcher
+	//General Control Switcher
 	$mx.render.configures.logSwitcher = true;
 	$mx.render.configures.autoStartSwitcher = true;
 
@@ -172,13 +172,12 @@
 		}
 
 		$mx.renderItems = function(renderElement,isRoot){
+			log(renderElement);
 			if (typeof(renderElement) == 'object' && renderElement.hasOwnProperty('childNodes')){
 				var childReplacers = renderElement.childNodes;
 				if (childReplacers.length > 0){
 					for (var i = 0;i < childReplacers.length;i++){
-						if (childReplacers[i].nodeName == 'ITEM'){
-							$mx.renderItems(childReplacers[i],0);
-						}
+						$mx.renderItems(childReplacers[i],0);
 					}
 					return;
 				}else{
@@ -186,11 +185,11 @@
 						log('Can\'t find any item replacer in ' + renderElement);
 						return false;
 					}else{
-						$mx.renderItem(renderElement);
+						if (renderElement.nodeName == 'ITEM'){
+							$mx.renderItem(renderElement);
+						}
 					}
 				}
-			}else{
-				log(renderElement + ' is not a HTML element.');
 			}
 		}
 	})($mx.render);
