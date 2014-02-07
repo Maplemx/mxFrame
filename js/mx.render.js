@@ -20,7 +20,8 @@
 	//Angular JS
 	$mx.render.configures.loadAngularJS = true;
 	$mx.render.configures.angularPath = 'js/angular.min.js';
-	$mx.render.configures.angularModuleName = 'default';
+	$mx.render.configures.angularModuleName = '';
+	$mx.render.configures.angularModulePath = 'angular/angularModules.js';
 	
 	//jQuery/Zepto
 	$mx.render.configures.loadJQuery = false;
@@ -75,6 +76,9 @@
 				angularLoader.setAttribute('src',confs.angularPath);
 				document.getElementsByTagName('html')[0].appendChild(angularLoader);
 				document.getElementsByTagName('html')[0].setAttribute('ng-app',confs.angularModuleName);
+				var angularModulesLoader = document.createElement('script');
+				angularModulesLoader.setAttribute('src',confs.angularModulePath);
+				document.getElementsByTagName('html')[0].appendChild(angularModulesLoader);
 			}
 
 			//load jQuery/Zepto
