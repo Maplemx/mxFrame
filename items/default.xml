@@ -6,7 +6,7 @@
 					position: fixed;
 					top: 50px;
 					left: 50%;
-					height: 150px;
+					height: 180px;
 					width: 300px;
 					margin-left: -100px;
 					border: 1px #FF0000 solid;
