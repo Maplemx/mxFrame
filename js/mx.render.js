@@ -1,5 +1,5 @@
 /**
- * mxRender v 0.1 Beta
+ * mxRender v 0.1.1 Beta
  */
  	if (typeof($mx) != 'object'){var $mx = {};}
 	if (typeof($mx.render) != 'object'){$mx.render = {};}
@@ -8,9 +8,11 @@
  	/**
  	 * Configure
 	 */
-	//General Control Switcher
-	$mx.render.configures.logSwitcher = true;
+	//Auto Start
 	$mx.render.configures.autoStartSwitcher = true;
+
+	//Console Information For Debugging
+	$mx.render.configures.logSwitcher = false;
 
 	//Item XML Path
 	$mx.render.configures.itemsXmlPath = 'items/default.xml';
@@ -18,6 +20,7 @@
 	//Angular JS
 	$mx.render.configures.loadAngularJS = true;
 	$mx.render.configures.angularPath = 'js/angular.min.js';
+	$mx.render.configures.angularModuleName = 'default';
 	
 	//jQuery/Zepto
 	$mx.render.configures.loadJQuery = false;
@@ -71,7 +74,7 @@
 				var angularLoader = document.createElement('script');
 				angularLoader.setAttribute('src',confs.angularPath);
 				document.getElementsByTagName('html')[0].appendChild(angularLoader);
-				document.getElementsByTagName('html')[0].setAttribute('ng-app','');
+				document.getElementsByTagName('html')[0].setAttribute('ng-app',confs.angularModuleName);
 			}
 
 			//load jQuery/Zepto
@@ -109,7 +112,7 @@
 				$mx.autoSetIdCounter++;
 			}
 			if (typeof(itemClass) == 'undefined'){
-				renderElement.setAttribute('class',itemTemplateName + '_default');
+				renderElement.setAttribute('class',itemTemplateName);
 			}
 
 			//load template
@@ -168,13 +171,17 @@
 				eval(itemTemplateCallback.textContent);
 			}
 
+			renderElement.setAttribute('mx-render','true');
+
 			$mx.renderItems(renderElement);
 		}
 
 		$mx.renderItems = function(renderElement,isRoot){
-			log(renderElement);
 			if (typeof(renderElement) == 'object' && renderElement.hasOwnProperty('childNodes')){
-				var childReplacers = renderElement.childNodes;
+				var childReplacers = renderElement.getElementsByTagName('item');
+				if (typeof(childReplacers) == 'undefined'){
+					return false;
+				}
 				if (childReplacers.length > 0){
 					for (var i = 0;i < childReplacers.length;i++){
 						$mx.renderItems(childReplacers[i],0);
@@ -185,7 +192,7 @@
 						log('Can\'t find any item replacer in ' + renderElement);
 						return false;
 					}else{
-						if (renderElement.nodeName == 'ITEM'){
+						if (renderElement.nodeName == 'ITEM' && typeof(renderElement.attributes['mx-render']) == 'undefined'){
 							$mx.renderItem(renderElement);
 						}
 					}

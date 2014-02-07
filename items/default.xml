@@ -22,9 +22,9 @@
 		<html>
 			<![CDATA[
 				<label>input your name here:</label>
-				<input ng-model = "name" placeholder = "yourname"/>
+				<input ng-model = "name" placeholder = "{$html}"/>
 				<h3>Welcome {{name}}!</h3>
-				<p><item mx-name = "frameInfo"></item></p>
+				<p><item mx-name = "frameInfo" version = "v0.1 Beta"></item></p>
 				<p><item mx-name = "itemXML"></item></p>
 			]]>
 		</html>
@@ -38,7 +38,7 @@
 	<frameInfo>
 		<html>
 			<![CDATA[
-				mxRender v0.1 Beta<br />with argular.js
+				mxRender {$version}<br />with argular.js
 			]]>
 		</html>
 	</frameInfo>
