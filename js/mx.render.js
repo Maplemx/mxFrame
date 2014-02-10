@@ -125,12 +125,12 @@
 				log(renderElement + 'has no template.',2);
 				return false;
 			}
-			var	itemTemplateCSS = itemTemplate.getElementsByTagName('css')[0],
-				itemTemplatePreloadOnce = itemTemplate.getElementsByTagName('preload-once')[0],
-				itemTemplatePreload = itemTemplate.getElementsByTagName('preload')[0],
-				itemTemplateHTML = itemTemplate.getElementsByTagName('html')[0],
-				itemTemplateCallback = itemTemplate.getElementsByTagName('callback-once')[0],
-				itemTemplateCallback = itemTemplate.getElementsByTagName('callback')[0],
+			var itemTemplateCSS = getFirstElementFromChildNodesByTagName(itemTemplate,'css'),
+				itemTemplatePreloadOnce = getFirstElementFromChildNodesByTagName(itemTemplate,'preload-once'),
+				itemTemplatePreload = getFirstElementFromChildNodesByTagName(itemTemplate,'preload'),
+				itemTemplateHTML = getFirstElementFromChildNodesByTagName(itemTemplate,'html'),
+				itemTemplateCallbackOnce = getFirstElementFromChildNodesByTagName(itemTemplate,'callback-once'),
+				itemTemplateCallback = getFirstElementFromChildNodesByTagName(itemTemplate,'callback'),
 				renderingItemHTML = renderElement.innerHTML;
 
 			//add additional CSS
@@ -254,4 +254,14 @@
 		}
 
 		return elementAttrsResult;
+	}
+
+	function getFirstElementFromChildNodesByTagName(element,targetNodeName){
+		if (typeof(element) == 'undefined'){return false;}
+		for (var i = 0;i < element.childNodes.length;i++){
+			if (element.childNodes[i].nodeName == targetNodeName){
+				return element.childNodes[i];
+			}
+		}
+		return;
 	}
