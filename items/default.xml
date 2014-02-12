@@ -14,14 +14,6 @@
 				}
 			]]>
 		</css>
-		<data>
-			<set>
-				{
-					name: "user",
-					age: 27
-				}
-			</set>
-		</data>
 		<preload-once>
 			<![CDATA[
 				alert('preloading!');
@@ -30,23 +22,33 @@
 		<template>
 			<![CDATA[
 				<label>input your name here:</label>
-				<input ng-model = "name" placeholder = "{$html}"/>
-				<h3>Welcome {{name}}!</h3>
+				<input placeholder = "{$html}" id = "input_yourname"/>
+				<h3>Welcome <span id = "span_yourname"></span>!</h3>
 				<p><mxitem name = "frameInfo" version = "v0.1 Beta"></item></p>
 				<p><mxitem name = "itemXML"></item></p>
 			]]>
 		</template>
 		<callback>
 			<![CDATA[
+				$('#input_yourname').on('keyup',function(){
+					$('#span_yourname').html($(this).val());
+				});
 				console.log('done!');
 			]]>
 		</callback>
 	</demo>
 
 	<frameInfo>
+		<data>
+			<set>
+				<![CDATA[
+					{version: "v0.2 Beta"}
+				]]>
+			</set>
+		</data>
 		<template>
 			<![CDATA[
-				mxRender {$version}<br />with argular.js
+				mxRender {$set.version}
 			]]>
 		</template>
 	</frameInfo>

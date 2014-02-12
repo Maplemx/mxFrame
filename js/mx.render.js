@@ -35,17 +35,18 @@
 	 * Main
 	 */
 	(function($mx){
+		$mx.logCounter = 0;
 		$mx.autoSetIdCounter = 0;
+		$mx.renderedElementCount = 0;
 		$mx.itemTemplates = {};
 		$mx.publicCSS = document.createElement('style');
 		$mx.addedCSS = [];
 		$mx.runPreloadOnce = [];
 		$mx.runCallbackOnce = [];
 		$mx.nowElement = {};
-		$mx.tempData = {};
+		$mx.tempData = [];
 		$mx.tempData.api = [];
 		$mx.tempData.set = {};
-		$mx.tempData.status = 'norequest';//norequest|pending|ready|fail
 
 		$mx.autoStart = function(){
 			$mx.preload(function(){
@@ -136,7 +137,7 @@
 					$mx.publicCSS.setAttribute('type','text/css');
 					document.getElementsByTagName('head')[0].appendChild($mx.publicCSS);
 
-					callback();
+					setTimeout(callback,0);
 				}
 			});
 		}
@@ -144,7 +145,11 @@
 		$mx.renderItem = function(renderedElement){
 			//preparation
 			$mx.nowElement = renderedElement;
-			$mx.tempData.status = 'norequest';
+			$mx.renderedElementCount++;
+			var renderedElementCount = $mx.renderedElementCount;
+			$mx.tempData[$mx.renderedElementCount] = {};
+			$mx.tempData[$mx.renderedElementCount].api = null;
+			$mx.tempData[$mx.renderedElementCount].set = null;
 			var itemAttributes = getElementAttributes(renderedElement),
 				itemTemplateName = itemAttributes['name'],
 				itemId = itemAttributes['id'],
@@ -190,9 +195,25 @@
 				renderedElement.innerHTML = itemReplacementHTML;
 			}
 
+			//do render
+			$mx.loadData(itemTemplateChildNodes['data'],renderedElementCount,function(){
+				$mx.doPreload(itemTemplateName,itemTemplateChildNodes['preload-once'],itemTemplateChildNodes['preload'],renderedElementCount,
+					function(){
+					$mx.doRender(renderedElement,itemTemplateChildNodes['template'],renderedElementCount,function(){
+						$mx.doCallback(itemTemplateName,itemTemplateChildNodes['callback-once'],itemTemplateChildNodes['callback'],renderedElementCount,function(){
+							$mx.tempData[renderedElementCount] = null;
+							renderedElement.setAttribute('mx-rendered','true');
+							$mx.scanElement(renderedElement);
+						})
+					});
+				});
+			});
+		}
+
+		$mx.loadData = function(data,renderedElementCount,callback){
 			//load data
-			if (typeof(itemTemplateChildNodes['data']) != 'undefined'){
-				var itemDataChildNodes = getElementChildNodes(itemTemplateChildNodes['data']);
+			if (typeof(data) != 'undefined'){
+				var itemDataChildNodes = getElementChildNodes(data);
 				if (typeof(itemDataChildNodes['api']) != 'undefined'){
 					$mx.tempData.status = 'pending';
 					var apiType = getElementAttributeByName(itemDataChildNodes['api'],'type');
@@ -200,11 +221,13 @@
 						url: itemDataChildNodes['api'].textContent,
 						type: apiType,
 						success: function(result){
-							$mx.tempData.api = result;
-							$mx.tempData.status = 'ready';
+							$mx.tempData[renderedElementCount].api = result;
+							if (typeof(itemDataChildNodes['set']) != 'undefined'){
+								$mx.tempData[renderedElementCount].set = eval('(' + itemDataChildNodes['set'].textContent + ')');
+							}
+							setTimeout(callback,0);
 						},
 						error: function(){
-							$mx.tempData.status = 'fail';
 							//render item when fail
 							if (typeof(itemTemplateChildNodes['fail']) != 'undefined'){
 								if (renderedElement.innerHTML != null){
@@ -220,57 +243,86 @@
 							}
 						}
 					});
-				}
-				if (typeof(itemDataChildNodes['set']) != 'undefined'){
-					$mx.tempData.set = itemDataChildNodes['set'].textContent;
-					$mx.tempData.status = 'ready';
+				}else if (typeof(itemDataChildNodes['set']) != 'undefined'){
+					$mx.tempData[renderedElementCount].set = eval('(' + itemDataChildNodes['set'].textContent + ')');
+					setTimeout(callback,0);
+				}else{
+					setTimeout(callback,0);
 				}
 			}else{
-				$mx.tempData.status = 'ready';
+				setTimeout(callback,0);
+			}
+		}
+
+		$mx.doPreload = function(itemTemplateName,preloadOnce,preload,renderedElementCount,callback){
+			//run preload-once JS
+			if (typeof(preloadOnce) != 'undefined' && !isInArray(itemTemplateName,$mx.runPreloadOnce)){
+				var preloadOnceFunctionString = 'var preloadOnceFunction = function(){var $api = $mx.render.tempData[' + renderedElementCount + '].api,$set = $mx.render.tempData[' + renderedElementCount + '].set;';
+				preloadOnceFunctionString += preloadOnce.textContent + '};preloadOnceFunction();';
+				setTimeout(preloadOnceFunctionString,0);
+				$mx.runPreloadOnce.push(itemTemplateName);
 			}
 
-			//run preload-once JS & preload JS
-			$mx.preloadJS(itemTemplateName,itemTemplateChildNodes['preload-once'],itemTemplateChildNodes['preload']);
+			//run preload JS
+			if (typeof(preload) != 'undefined'){
+				var preloadFunctionString = 'var preloadFunction = function(){var $api = $mx.render.tempData[' + renderedElementCount + '].api,$set = $mx.render.tempData[' + renderedElementCount + '].set;';
+				preloadFunctionString += preload.textContent + '};preloadFunction();';
+				setTimeout(preloadFunctionString,0);
+			}
+			setTimeout(callback,0);
+		}
 
+		$mx._doPreload = function(itemTemplateName,preloadOnce,preload,renderedElementCount,callback){
+			return function(){
+				$mx.doPreload(itemTemplateName,preloadOnce,preload,renderedElementCount,callback);
+			}
+		}
+
+		$mx.doRender = function(renderedElement,template,renderedElementCount,callback){
 			//render item when finish data loading
-			if (typeof(itemTemplateChildNodes['template']) != 'undefined'){
+			log(renderedElement.attributes['name'].value,'+');
+			log(renderedElementCount);
+			log($mx.tempData[renderedElementCount]);
+			if (typeof(template) != 'undefined'){
 				if (renderedElement.innerHTML != null){
-					var itemReplacementHTML = itemTemplateChildNodes['template'].textContent.replace(/\{\$html\}/gm,renderedElement.innerHTML);
+					var itemReplacementHTML = template.textContent.replace(/\{\$html\}/gm,renderedElement.innerHTML);
 				}else{
-					var itemReplacementHTML = itemTemplateChildNodes['template'].textContent
+					var itemReplacementHTML = template.textContent;
 				}
+				itemAttributes = getNowElementAttributes();
 				for (var attributeName in itemAttributes){
 					var reg = new RegExp('\\\{\\\$' + attributeName + '\\\}','gm');
 					itemReplacementHTML = itemReplacementHTML.replace(reg,itemAttributes[attributeName]);
 				}
-				for (var dataName in $mx.tempData.api){
+				for (var dataName in $mx.tempData[renderedElementCount].api){
 					var reg = new RegExp('\\\{\\\$api\\\.' + dataName + '\\\}','gm');
-					itemReplacementHTML = itemReplacementHTML.replace(reg,$mx.tempData.api[dataName]);					
+					itemReplacementHTML = itemReplacementHTML.replace(reg,$mx.tempData[renderedElementCount].api[dataName]);					
 				}
-				for (var dataName in $mx.tempData.set){
+				for (var dataName in $mx.tempData[renderedElementCount].set){
 					var reg = new RegExp('\\\{\\\$set\\\.' + dataName + '\\\}','gm');
-					itemReplacementHTML = itemReplacementHTML.replace(reg,$mx.tempData.set[dataName]);	
+					itemReplacementHTML = itemReplacementHTML.replace(reg,$mx.tempData[renderedElementCount].set[dataName]);	
 				}
 				renderedElement.innerHTML = itemReplacementHTML;
 			}
+			setTimeout(callback,0);
+		}
 
+		$mx.doCallback = function(itemTemplateName,callbackOnce,callback,renderedElementCount,finish){
 			//run callback-once JS
 			if (typeof(callbackOnce) != 'undefined' && !isInArray(itemTemplateName,$mx.runCallbackOnce)){
-				var callbackOnceFunctionString = 'var callbackOnceFunction = function(){var $api = $mx.tempData.api,$set = $mx.tempData.set;';
+				var callbackOnceFunctionString = 'var callbackOnceFunction = function(){var $api = $mx.render.tempData[' + renderedElementCount + '].api,$set = $mx.render.tempData[' + renderedElementCount + '].set;';
 				callbackOnceFunctionString += callbackOnce.textContent + '};callbackOnceFunction();';
-				eval(callbackOnceFunctionString);
+				setTimeout(callbackOnceFunctionString,0);
 				$mx.runCallbackOnce.push(itemTemplateName);
 			}
 
 			//run callback JS
 			if (typeof(callback) != 'undefined'){
-				var callbackFunctionString = 'var callbackFunction = function(){var $api = $mx.tempData.api,$set = $mx.tempData.set;';
+				var callbackFunctionString = 'var callbackFunction = function(){var $api = $mx.render.tempData[' + renderedElementCount + '].api,$set = $mx.render.tempData[' + renderedElementCount + '].set;';
 				callbackFunctionString += callback.textContent + '};callbackFunction();';
-				eval(callbackFunctionString);
+				setTimeout(callbackFunctionString,0);
 			}
-
-			renderedElement.setAttribute('mx-rendered','true');
-			$mx.scanElement(renderedElement);
+			setTimeout(finish,0);
 		}
 
 		$mx.scanElement = function(scanedElement){
@@ -282,27 +334,6 @@
 				if (scanedElement.nodeName == 'MXITEM' && !scanedElement.attributes['mx-rendered']){
 					$mx.renderItem(scanedElement);
 				}
-			}
-		}
-
-		$mx.preloadJS = function(itemTemplateName,preloadOnce,preload){
-			if ($mx.tempData.status == 'ready'){
-				//run preload-once JS
-				if (typeof(preloadOnce) != 'undefined' && !isInArray(itemTemplateName,$mx.runPreloadOnce)){
-					var preloadOnceFunctionString = 'var preloadOnceFunction = function(){var $api = $mx.tempData.api,$set = $mx.tempData.set;';
-					preloadOnceFunctionString += preloadOnce.textContent + '};preloadOnceFunction();';
-					eval(preloadOnceFunctionString);
-					$mx.runPreloadOnce.push(itemTemplateName);
-				}
-
-				//run preload JS
-				if (typeof(preload) != 'undefined'){
-					var preloadFunctionString = 'var preloadFunction = function(){var $api = $mx.tempData.api,$set = $mx.tempData.set;';
-					preloadFunctionString += preload.textContent + '};preloadFunction();';
-					eval(preloadFunctionString);
-				}
-			}else if ($mx.tempData.status == 'pending'){
-				setTimeout(300,'$mx.preloadJS(itemTemplateName,preloadOnce,preload)');
 			}
 		}
 	})($mx.render);
@@ -322,16 +353,20 @@
 			switch(type){
 				case 0:
 				default:
-					console.log(content);
+					console.log(['[' + $mx.render.logCounter + ']', content]);
 					break;
 				case 1:
-					console.info(content);
+					console.info(['[' + $mx.render.logCounter + ']' , content]);
 					break;
 				case 2:
-					console.warn(content);
+					console.warn(['[' + $mx.render.logCounter + ']' , content]);
 					break;
 				case 3:
-					console.error(content);
+					console.error(['[' + $mx.render.logCounter + ']' , content]);
+					break;
+				case '+':
+					$mx.render.logCounter++;
+					console.log(['[' + $mx.render.logCounter + ']' , content]);
 					break;
 			}
 		}
