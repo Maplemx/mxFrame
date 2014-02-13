@@ -1,5 +1,7 @@
 /**
  * mxRender v 0.2 Beta
+ * Author: moxin
+ * Email: maplemx@gmail.com
  */
  	if (typeof($mx) != 'object'){var $mx = {};}else{
  		console.info('$mx object exist, if you\'re not using other plugins write by maplemx, there\'ll may have some compatible problems!');
@@ -14,7 +16,7 @@
 	$mx.render.configures.autoStart = true;
 
 	//Console Information For Debugging
-	$mx.render.configures.log = true;
+	$mx.render.configures.log = false;
 
 	//Item XML Path
 	$mx.render.configures.itemsXmlPath = 'items/default.xml';
@@ -45,8 +47,6 @@
 		$mx.runCallbackOnce = [];
 		$mx.nowElement = {};
 		$mx.tempData = [];
-		$mx.tempData.api = [];
-		$mx.tempData.set = {};
 
 		$mx.autoStart = function(){
 			$mx.preload(function(){
@@ -147,9 +147,10 @@
 			$mx.nowElement = renderedElement;
 			$mx.renderedElementCount++;
 			var renderedElementCount = $mx.renderedElementCount;
-			$mx.tempData[$mx.renderedElementCount] = {};
-			$mx.tempData[$mx.renderedElementCount].api = null;
-			$mx.tempData[$mx.renderedElementCount].set = null;
+			$mx.tempData[renderedElementCount] = {};
+			$mx.tempData[renderedElementCount].api = null;
+			$mx.tempData[renderedElementCount].set = null;
+			$mx.tempData[renderedElementCount].now = renderedElement;
 			var itemAttributes = getElementAttributes(renderedElement),
 				itemTemplateName = itemAttributes['name'],
 				itemId = itemAttributes['id'],
@@ -257,16 +258,15 @@
 		$mx.doPreload = function(itemTemplateName,preloadOnce,preload,renderedElementCount,callback){
 			//run preload-once JS
 			if (typeof(preloadOnce) != 'undefined' && !isInArray(itemTemplateName,$mx.runPreloadOnce)){
-				var preloadOnceFunctionString = 'var preloadOnceFunction = function(){var $api = $mx.render.tempData[' + renderedElementCount + '].api,$set = $mx.render.tempData[' + renderedElementCount + '].set;';
-				preloadOnceFunctionString += preloadOnce.textContent + '};preloadOnceFunction();';
+				var preloadOnceFunctionString = $mx.formTempFunctionString(preloadOnce.textContent,renderedElementCount);
+				log(preloadOnceFunctionString);
 				setTimeout(preloadOnceFunctionString,0);
 				$mx.runPreloadOnce.push(itemTemplateName);
 			}
 
 			//run preload JS
 			if (typeof(preload) != 'undefined'){
-				var preloadFunctionString = 'var preloadFunction = function(){var $api = $mx.render.tempData[' + renderedElementCount + '].api,$set = $mx.render.tempData[' + renderedElementCount + '].set;';
-				preloadFunctionString += preload.textContent + '};preloadFunction();';
+				var preloadFunctionString = $mx.formTempFunctionString(preload.textContent,renderedElementCount);
 				setTimeout(preloadFunctionString,0);
 			}
 			setTimeout(callback,0);
@@ -280,9 +280,6 @@
 
 		$mx.doRender = function(renderedElement,template,renderedElementCount,callback){
 			//render item when finish data loading
-			log(renderedElement.attributes['name'].value,'+');
-			log(renderedElementCount);
-			log($mx.tempData[renderedElementCount]);
 			if (typeof(template) != 'undefined'){
 				if (renderedElement.innerHTML != null){
 					var itemReplacementHTML = template.textContent.replace(/\{\$html\}/gm,renderedElement.innerHTML);
@@ -310,22 +307,36 @@
 		$mx.doCallback = function(itemTemplateName,callbackOnce,callback,renderedElementCount,finish){
 			//run callback-once JS
 			if (typeof(callbackOnce) != 'undefined' && !isInArray(itemTemplateName,$mx.runCallbackOnce)){
-				var callbackOnceFunctionString = 'var callbackOnceFunction = function(){var $api = $mx.render.tempData[' + renderedElementCount + '].api,$set = $mx.render.tempData[' + renderedElementCount + '].set;';
-				callbackOnceFunctionString += callbackOnce.textContent + '};callbackOnceFunction();';
+				var callbackOnceFunctionString = $mx.formTempFunctionString(callbackOnce.textContent,renderedElementCount);
 				setTimeout(callbackOnceFunctionString,0);
 				$mx.runCallbackOnce.push(itemTemplateName);
 			}
 
 			//run callback JS
 			if (typeof(callback) != 'undefined'){
-				var callbackFunctionString = 'var callbackFunction = function(){var $api = $mx.render.tempData[' + renderedElementCount + '].api,$set = $mx.render.tempData[' + renderedElementCount + '].set;';
-				callbackFunctionString += callback.textContent + '};callbackFunction();';
+				var callbackFunctionString = $mx.formTempFunctionString(callback.textContent,renderedElementCount);
 				setTimeout(callbackFunctionString,0);
 			}
 			setTimeout(finish,0);
 		}
 
-		$mx.scanElement = function(scanedElement){
+		$mx.formTempFunctionString = function(functionString,renderedElementCount){
+			var tempFunctionString =
+				'var tempFunction = function(){' +
+					'var $dataCode = ' + renderedElementCount + ',' +
+						'$api = $mx.render.tempData[$dataCode].api,' +
+						'$set = $mx.render.tempData[$dataCode].set,' +
+						'$this = $mx.render.tempData[$dataCode].now;' +
+					functionString +
+					'$mx.render.tempData[$dataCode].api = $api;' +
+					'$mx.render.tempData[$dataCode].set = $set;' +
+				'};' +
+				'tempFunction();';
+			log(tempFunctionString);
+			return tempFunctionString;
+		}
+
+		$mx.scanElement = function(scanedElement,callback){
 			//log(scanedElement);
 			if (typeof(scanedElement) == 'object' && scanedElement.hasOwnProperty('childNodes')){
 				for (var i = 0;i < scanedElement.childNodes.length;i++){
@@ -335,6 +346,7 @@
 					$mx.renderItem(scanedElement);
 				}
 			}
+			if(typeof(callback) == 'function'){callback();}
 		}
 	})($mx.render);
 
