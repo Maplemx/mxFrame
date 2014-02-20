@@ -1,5 +1,10 @@
 <mxFrameItemTemplates>
 	<demo>
+		<data>
+			{
+				demo_data: 'hello world'			
+			}
+		</data>
 		<css>
 			<![CDATA[
 				.demo{
@@ -24,8 +29,8 @@
 				<label>input your name here:</label>
 				<input placeholder = "{$html}" id = "input_yourname"/>
 				<h3>Welcome <span id = "span_yourname"></span>!</h3>
-				<p><mxitem name = "frameInfo" version = "v0.1 Beta"></item></p>
-				<p><mxitem name = "itemXML"></item></p>
+				<p><item name = "frameInfo" version = "v0.3.0 Beta"></item></p>
+				<p><item name = "itemXML"></item></p>
 			]]>
 		</template>
 		<callback>
@@ -40,15 +45,11 @@
 
 	<frameInfo>
 		<data>
-			<set>
-				<![CDATA[
-					{version: "v0.2 Beta"}
-				]]>
-			</set>
+			{version: "v0.3 Beta"}
 		</data>
 		<template>
 			<![CDATA[
-				mxRender {$set.version}
+				mxRender {$version}
 			]]>
 		</template>
 	</frameInfo>
