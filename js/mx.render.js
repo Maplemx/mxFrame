@@ -111,27 +111,30 @@
 	if (typeof($mx.render) != 'object'){$mx.render = {};}
 	(function($render){
 		/**
-		 * Configures
+		 * Set Default Configures
 		 */
-		$render.configures = {
+		$render.defaultConfigures = {
 			//Auto Start
 			autoStart: true,
 			//Debug Log
 			log: true,
 			//Item XML Path
-			itemsXmlPath:'items/default.xml',
+			itemsXmlPath: 'items/default.xml',
+			//Auto Load Modules
+			loadModules: false,
+			modules: [],
 			//Auto Load Plug-ins
 			loadPlugins: true,
 			plugins: [
 				'js/jQuery.min.js'
 			],
 			//Auto Load CSSes
-			loadCsses:true,
+			loadCsses: true,
 			csses: [
 				'css/default.css'
 			],
 			//Preload Waiting Timing(ms)
-			preloadWaiting:0
+			preloadWaiting: 0,
 		};
 
 		/**
@@ -203,10 +206,25 @@
 								'};tempFunction();';
 				return result;
 			},
-			replaceBreakLine = function(text){
-				var reg = new RegExp('[\\\n\\\r]+','gm');
-				return text.replace(reg,'');
+			transportDataStringToData = function(object,itemId){
+				var result = {};
+				for (var key in object){
+					if (object[key].substr(0,2) == '$='){
+						result[key] = eval('(' + object[key].substr(2) + ')');
+					}
+				}
+				return result;
 			}
+
+		/**
+		 * Activate Configures
+		 */
+		if (typeof($mxRenderConfigures) == 'undefined'){
+			$render.configures = $render.defaultConfigures;
+		}else{
+			$render.configures = mergeObjects($render.defaultConfigures,$mxRenderConfigures);
+		}
+
 
 		/**
 		 * Main
@@ -245,6 +263,14 @@
 								htmlElement.appendChild(pluginLoader);
 							}
 						}
+						//load modules
+						if (configures.loadModules && configures.modules.length > 0){
+							for (var i = 0;i < configures.modules.length;i++){
+								var moduleLoader = document.createElement('script');
+								moduleLoader.setAttribute('src',configures.modules[i]);
+								htmlElement.appendChild(moduleLoader);
+							}
+						}						
 						//load css
 						if (configures.loadCsses && configures.csses.length > 0){
 							for (var i = 0;i < configures.csses.length;i++){
@@ -324,6 +350,7 @@
 					}
 					var tempData = mergeObjects(templateSetData,itemAttributes);
 					tempData = mergeObjects(tempData,renderData);
+					tempData = mergeObjects(tempData,transportDataStringToData(itemAttributes,itemId));
 					$render.data[itemId] = tempData;
 					$mx.say(itemId + ' load data done');
 				}
@@ -332,9 +359,9 @@
 				var addCss = function(){
 					$mx.unsay(itemId + ' load data done');
 					if (itemTemplateChildNodes['css'] && !$render.addedCSS.indexOf(itemName) > -1){
-						var addCSS = replaceBreakLine(itemTemplateChildNodes['css'].textContent);
+						var addCSS = itemTemplateChildNodes['css'].textContent;
 						addCSS = replaceWithObject(itemTemplateChildNodes['css'].textContent,$render.data[itemId]);
-						$render.publicCSS.innerHTML = addCSS;
+						$render.publicCSS.innerHTML += addCSS;
 						$render.addedCSS.push(itemName);
 					}
 					$mx.say(itemId + ' add css done');
@@ -366,7 +393,7 @@
 				var doRender = function(){
 					$mx.unsay(itemId + ' do preload done');
 					if (itemTemplateChildNodes['template']){
-						var itemReplacementHTML = replaceBreakLine(itemTemplateChildNodes['template'].textContent);
+						var itemReplacementHTML = itemTemplateChildNodes['template'].textContent;
 						if (element.innerHTML != null){
 							itemReplacementHTML = itemReplacementHTML.replace(/\{\$html\}/gm,element.innerHTML);
 						}
