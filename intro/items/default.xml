@@ -1,0 +1,49 @@
+<mxRenderIntro>
+	<!--框架部分-->
+	<frames>
+		<header>
+			<template>
+				<![CDATA[
+					<item name = "nav" LOGO = "mxRender" list = "$=$intro.navList"></item>
+					<item name = "intro-pic" pic = "images/intro.jpg" downloadInfo = "$=$intro.downloadInfo"></item>
+				]]>
+			</template>
+		</header>
+		<content>
+		</content>
+		<tailer>
+			<css>
+				<![CDATA[
+					.tailer{
+						font-size:80%;
+						color:#BBB;
+						position:fixed;
+						top:100%;
+						left:0;
+						width:100%;
+						line-height:2em;
+						text-align:center;
+						margin-top:-2em;
+						border-top:1px #BBB dashed;
+						background:#EEE;
+						z-index:10;
+					}
+					.tailer a{
+						color:#AAA;
+					}
+					.tailer a:hover{
+						color:#BBB;
+					}
+				]]>
+			</css>
+			<template>
+				<![CDATA[
+					Develop by moxin. Render by <a href = "js/mx.render.js">mxRender v0.3.0 Beta</a>. HOW IT'S BUILT: <a href = "items/default.xml">click here</a>.
+				]]>
+			</template>
+		</tailer>
+	</frames>
+	<!--控件部分-->
+	<items>
+	</items>
+</mxRenderIntro>
