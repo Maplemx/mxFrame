@@ -111,24 +111,36 @@
 	if (typeof($mx.render) != 'object'){$mx.render = {};}
 	(function($render){
 		/**
+		 * mxRender info
+		 */
+		$render.info = {
+			author: "moxin",
+			email: "maplemx@gmail.com",
+			version: "0.3.0 Beta"
+		}
+		/**
 		 * Set Default Configures
 		 */
 		$render.defaultConfigures = {
 			//Auto Start
 			autoStart: true,
 			//Debug Log
-			log: false,
+			log: true,
 			//Item XML Path
 			itemsXmlPath: 'items/default.xml',
 			//Auto Load Modules
 			loadModules: false,
 			modules: [],
 			//Auto Load Plug-ins
-			loadPlugins: false,
-			plugins: [],
+			loadPlugins: true,
+			plugins: [
+				'js/jQuery.min.js'
+			],
 			//Auto Load CSSes
-			loadCsses: false,
-			csses: [],
+			loadCsses: true,
+			csses: [
+				'css/default.css'
+			],
 			//Preload Waiting Timing(ms)
 			preloadWaiting: 0,
 		};
@@ -294,12 +306,12 @@
 			 */
 			$render.scanElement = function(element,callback){
 				if (typeof(element) == 'object' && element.hasOwnProperty('childNodes')){
-					for (var i = 0;i < element.childNodes.length;i++){
-						$render.scanElement(element.childNodes[i]);
-					}
 					if (element.nodeName == 'ITEM' && !element.attributes['mx-rendered']){
 						$render.renderItem(element);
 					}
+					for (var i = 0;i < element.childNodes.length;i++){
+						$render.scanElement(element.childNodes[i]);
+					}					
 				}
 				if (typeof(callback) == 'function'){callback();}
 			}
@@ -348,6 +360,7 @@
 					tempData = mergeObjects(tempData,renderData);
 					tempData = mergeObjects(tempData,transportDataStringToData(itemAttributes,itemId));
 					$render.data[itemId] = tempData;
+					if (typeof($render.data[itemId].data) != 'undefined'){$render.data[itemId] = mergeObjects($render.data[itemId],$render.data[itemId].data);}
 					$mx.say(itemId + ' load data done');
 				}
 

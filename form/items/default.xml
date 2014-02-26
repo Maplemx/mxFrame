@@ -1,0 +1,315 @@
+<mxRenderIntro>
+	<!--页面框架部分-->
+	<frames>
+		<header>
+			<template>
+				<![CDATA[
+					<item name = "mx-header"
+						logo-text1 = "$=_app.header.logo.text1"
+						logo-text2 = "$=_app.header.logo.text2"
+						nav-list = "_app.header.nav.list"
+						nav-do = "_app.header.nav.do"
+					>
+					</item>
+				]]>
+			</template>
+		</header>
+		<!--正文内容-->
+		<content>
+			<css>
+				<![CDATA[
+
+				]]>
+			</css>
+			<template>
+				<![CDATA[
+					<div style = "display:block;width:100%;height:3.5em;"></div>
+					<div style = "padding-left:1em;padding-right:1em;">
+						{$html}
+					</div>
+					<div style = "display:block;width:100%;height:2em;"></div>
+				]]>
+			</template>
+		</content>
+			<event-list>
+			</event-list>
+			<worksheet>
+			</worksheet>
+		<tailer>
+			<template>
+				<![CDATA[
+					<item name = "mx-tailer"></item>
+				]]>
+			</template>
+		</tailer>
+	</frames>
+	<!--控件部分-->
+	<items>
+		<!--头部导航条控件组合开始-->
+		<mx-header>
+			<data>
+				<![CDATA[
+					{
+						//header
+						"background-color": "#333",
+						"border-color": "#000",
+						"shadow-color": "#222",
+						//LOGO
+						"logo-text1": "Demo",
+						"logo-color1": "#FF0000",
+						"logo-text2" : "LOGO",
+						"logo-color2": "#CCC",
+						//nav
+						"nav-list": "[{do:'demo',text:'样例'}]",
+						"nav-do": "{demo: function(){console.log('do demo');}}",
+						"nav-default-selected": 1,
+						"nav-background-color": "#CCC",
+						"nav-text-color": "#333",
+						"nav-hover-background-color": "#EEE",
+						"nav-hover-text-color": "#555",
+						"nav-selected-background-color": "#F0F0F0",
+						"nav-selected-text-color": "#000",
+					}
+				]]>
+			</data>
+			<css>
+				<![CDATA[
+					.mx-header{
+						position:fixed;
+						left:0;
+						top:0;
+						width:99.5%;
+						background:{$background-color};
+						height:2em;
+						line-height:2em;
+						border-bottom:{$border-color};
+						box-shadow:0px 1px 3px {$shadow-color};
+						display:block;
+						padding-top:0.5em;
+						padding-bottom:0.5em;
+						padding-left:0.5%;
+					}
+					.mx-header .mx-logo{					
+						float:left;
+					}
+					.mx-header .mx-nav{
+						margin-left:3em;
+						float:left;
+					}
+				]]>
+			</css>
+			<template>
+				<![CDATA[
+					<item name = "mx-logo"
+						text1 = "{$logo-text1}"
+						color1 = "{$logo-color1}"
+						text2 = "{$logo-text2}"
+						color2 = "{$logo-color2}">
+					</item>
+					<item name = "mx-nav"
+						list = "$={$nav-list}"
+						do = "$={$nav-do}"
+						selected = "{$nav-default-selected}"
+						background-color = "{$nav-background-color}"
+						text-color = "{$nav-text-color}"
+						hover-background-color = "{$nav-hover-background-color}"
+						hover-text-color = "{$nav-hover-text-color}"
+						selected-background-color = "{$nav-selected-background-color}"
+						selected-text-color = "{$nav-selected-text-color}"
+					></item>
+				]]>
+			</template>
+		</mx-header>
+			<!--双色LOGO-->
+			<mx-logo>
+				<data>
+					<![CDATA[
+						{
+							text1: "Demo",
+							text2: "LOGO",
+							color1: "#FF0000",
+							color2: "#CCC",
+						}
+					]]>
+				</data>
+				<css>
+					<![CDATA[
+						.mx-logo{
+							font-size:180%;
+							font-family:impact,微软雅黑;
+							display:block;
+						}
+
+						.mx-logo:hover{
+							cursor:pointer;
+						}
+
+						.mx-logo .text1{
+							color:{$color1};
+						}
+
+						.mx-logo .text2{
+							color:{$color2};
+						}
+					]]>
+				</css>
+				<template>
+					<![CDATA[
+						<span class = "text1">{$text1}</span><span class = "text2">{$text2}</span>
+					]]>
+				</template>
+			</mx-logo>
+			<!--横版导航条-->
+			<mx-nav>
+				<data>
+					<![CDATA[
+						{
+							list:[
+								{
+									do: "job1",
+									text: "Nav1",
+								},
+								{
+									do: "job2",
+									text: "Nav2",
+								}
+							],
+							do:{
+								job1: function(){
+									console.log('do job1');
+								},
+								job2: function(){
+									console.log('do job2');
+								},
+							},
+							selected: 1,
+							"background-color": "#CCC",
+							"text-color": "#333",
+							"hover-background-color": "#EEE",
+							"hover-text-color": "#555",
+							"selected-background-color": "#F0F0F0",
+							"selected-text-color": "#000",
+						}
+					]]>
+				</data>
+				<css>
+					<![CDATA[
+						.mx-nav ul{
+							list-style: none;
+							margin:0;
+							padding:0;
+						}
+
+						.mx-nav ul li{
+							display: inline;
+							height: 1.6em;
+							line-height: 1em;
+							margin:0;
+							padding:0.3em;
+							margin-left:0.3em;
+							background: {$background-color};
+							color: {$text-color};
+							border-radius: 3px;
+						}
+
+						.mx-nav ul li:hover{
+							background: {$hover-background-color};
+							color: {$hover-text-color};
+							cursor: pointer;
+						}
+
+						.mx-nav ul li.selected{
+							background: {$selected-background-color};
+							color: {$selected-text-color};
+						}
+					]]>
+				</css>
+				<preload>
+					<![CDATA[
+						var html = '<ul>';
+						for (var i = 0;i < $data.list.length;i++){
+							html += '<li do = "' + $data.list[i].do + '"';
+							if (i == ($data.selected - 1)){
+								html += ' class = "selected"';
+							}
+							html += '>' + $data.list[i].text + '</li>';
+						}
+						html += '</ul>';
+						$this.innerHTML = html;
+					]]>
+				</preload>
+				<callback>
+					<![CDATA[
+						var liGroup = $this.getElementsByTagName('li'),
+							eraseClass = function(){
+								for (var i = 0;i < liGroup.length;i++){
+									liGroup[i].className = liGroup[i].className.replace(/selected/gm,'');
+								}
+							}
+						for (var i = 0;i < liGroup.length;i++){
+							liGroup[i].onclick = function(){
+								eraseClass();
+								this.className += ' selected';
+								$data.do[this.attributes['do'].value]();
+							}
+						}
+					]]>
+				</callback>
+			</mx-nav>
+		<!--头部导航条控件组合结束-->
+		<!--mxRender标准尾部-->
+		<mx-tailer>
+			<css>
+				<![CDATA[
+					.mx-tailer{
+						font-size:80%;
+						color:#BBB;
+						position:fixed;
+						top:100%;
+						left:0;
+						width:100%;
+						line-height:2em;
+						text-align:center;
+						margin-top:-2em;
+						border-top:1px #BBB dashed;
+						background:#EEE;
+						z-index:10;
+					}
+					.mx-tailer a{
+						color:#AAA;
+					}
+					.mx-tailer a:hover{
+						color:#BBB;
+					}
+				]]>
+			</css>
+			<preload>
+				<![CDATA[
+					$data.author = $mx.render.info.author;
+					$data.email = $mx.render.info.email;
+					$data.version = $mx.render.info.version;
+					$data.itemPath = $mx.render.configures.itemsXmlPath;
+				]]>
+			</preload>
+			<template>
+				<![CDATA[
+					Develop by <a href = "mailto:{$email}">{$author}</a>. Render by mxRender {$version}. HOW IT'S BUILT: <a href = "{$itemPath}" target = "_blank">click here</a>.
+				]]>
+			</template>
+		</mx-tailer>
+		<mx-button>
+			<css>
+				<![CDATA[
+					.mx-button{
+
+					}
+				]]>
+			</css>
+			<template>
+				<![CDATA[
+
+				]]>
+			</template>
+		</mx-button>
+	</items>
+</mxRenderIntro>
