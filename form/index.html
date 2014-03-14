@@ -4,9 +4,36 @@
 		<meta content = "text/html" charset = "utf-8" />
 	</head>
 	<body>
-		<item name = "header" background = "#666"></item>
-		<item name = "content"></item>
+		<item name = "header" background = "#666">
+		</item>		
+		<item name = "content">
+			<item name = "mx-form"></item>
+			<script>
+				demoData2 = [
+								{
+									ID: 1,
+									标题: '测试标题1',
+									内容: '测试内容1',
+									操作: '<item name = "mx-button" value = "点我一下" content = "1" do = "$=function(content){alert(content);return false;}"></item>'
+								},
+								{
+									ID: 2,
+									标题: '测试标题2',
+									内容: '测试内容2',
+									操作: '<item name = "mx-button" value = "点我一下" content = "2" do = "$=function(content){alert(content);return false;}"></item>'
+								},
+							]
+			</script>
+			<item name = "mx-table"
+				content = "$=demoData2"
+			></item>
+			<item name = "mx-select"
+				content = "$=[{name:'选项1',value:'值1'},{name:'选项2',value:'值2'}]"
+			></item>
+			<a href = "#">测试链接</a>
+		</item>
 		<item name = "tailer"></item>
+		<item name = "mx-font-setting" border-color = "#333" style = "position:fixed;top:0.55em;right:0.6em;"></item>
 	</body>
 </html>
 <script>
@@ -29,5 +56,6 @@ $mxRenderConfigures = {
 	//Preload Waiting Timing(ms)
 	preloadWaiting: 0,
 };
+
 </script>
 <script src = "js/mx.render.js"></script>

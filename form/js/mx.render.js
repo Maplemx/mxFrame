@@ -1,53 +1,111 @@
+var scanCounter = 0;
 /**
- * mxRender v 0.3.0 Beta
- * An auto render frame
+ * mxRender v 0.3.2 Beta
+ * An auto render frame (only for Chrome now)
  * Author: Maplemx
  * Email: maplemx@gmail.com
  */
  	if (typeof($mx) != 'object'){var $mx = {};}	
 
 	/**
-	 * mx.say.js v 0.2.0 Beta
+	 * mxTraffic v 0.1.0 Beta
 	 */
-	if (typeof($mx.Say) == 'undefined'){$mx.Say = {};};
-	(function($mx){
-		$mx.Say.words = [];
+	$mx.traffic = {};
+	(function($t){
+		//Private Attributes
+		var signals = [],
+			waits = [];
 
-		$mx.say = function(word,wait){
-			if (typeof(wait) != 'number'){wait = 0;}
-			if (!$mx.Say.words.indexOf(word) > -1){
-				var _say = function(){
-					return $mx.Say.words.push(word);
+		//Private Methods
+		var addSignal = function(signal){
+				if (signals.indexOf(signal) > -1){
+					return true;
+				}else{
+					return signals.push(signal);
 				}
-				setTimeout(_say,wait);
-				return true;
-			}else{
-				return false;
-			}
-		}
-
-		$mx.unsay = function(word){
-			var index = $mx.Say.words.indexOf(word);
-			if (index > -1){
-				$mx.Say.words.splice(index,1);
-				return true;
-			}else{
-				return false;
-			}
-		}
-
-		$mx.wait = function(word,func,sleepTime){
-			if (typeof(sleepTime) == 'undefined'){sleepTime = 30;}
-			if ($mx.Say.words.indexOf(word) > -1){
-				func();
-			}else{
-				var _wait = function(){
-					return $mx.wait(word,func,sleepTime);
+			},
+			removeSignal = function(signal){
+				var index = signals.indexOf(signal);
+				if (index > -1){
+					return signals.splice(index,1);
+				}else{
+					return true;
 				}
-				setTimeout(_wait,sleepTime);
+			},
+			checkWait = function(waitObject){
+				if (typeof(waitObject) != 'object'){return false;}
+				if (typeof(waitObject.signal) == 'undefined'){return false;}
+				if (typeof(waitObject.do) != 'function'){return false;}
+				if (waitObject.sort != 'always'){waitObject.sort = 'once';}
+				return waitObject;
+			},
+			addWait = function(waitObject){
+				if (waits.indexOf(waitObject) > -1){
+					return true;
+				}else{
+					return waits.push(waitObject);
+				}
+			},
+			removeWait = function(waitObject){
+				var index = waits.indexOf(waitObject);
+				if (index > -1){
+					return waits.splice(index,1);
+				}else{
+					return true;
+				}
+			},
+			inSignals = function(signal){
+				return (signals.indexOf(signal) > -1);
+			},
+			doWait = function(waitObject){
+				setTimeout(waitObject.do);
+				if (waitObject.sort != 'always'){
+					removeWait(waitObject);
+				}
+			},
+			tryWait = function(waitObject){
+				if (inSignals(waitObject.signal)){
+					doWait(waitObject);				
+				}
+			},
+			trySignal = function(signal){
+				for (var i in waits){
+					if (waits[i].signal == signal){
+						doWait(waits[i]);
+					}
+				}
+			};
+
+		//Public Attributes
+		//$t.signals = signals;
+		//$t.waits = waits;
+
+		//Public Methods
+		$t.flash = function(signal){
+			trySignal(signal);
+		};
+		$t.turnOn = function(signal){
+			addSignal(signal);
+			trySignal(signal);
+		};
+		$t.turnOff = function(signal){
+			removeSignal(signal);		
+		};
+		$t.inLine = function(waitObject){
+			if (waitObject = checkWait(waitObject)){
+				addWait(waitObject);
+				tryWait(waitObject);
 			}
-		}
-	})($mx);
+		};
+		$t.outLine = function(waitObject){
+			removeWait(waitObject);
+		};
+		$t.doFullScan = function(){
+			for (var waitObject in waits){
+				tryWait(waitObject);
+			}
+		};
+	})($mx.traffic);
 
 	/**
 	 * mxAjax v 0.1.0 Beta
@@ -106,7 +164,7 @@
 	})($mx);
 
 	/**
-	 * mxRender v 0.3.0 Beta
+	 * mxRender v 0.3.2 Beta
 	 */
 	if (typeof($mx.render) != 'object'){$mx.render = {};}
 	(function($render){
@@ -116,7 +174,7 @@
 		$render.info = {
 			author: "moxin",
 			email: "maplemx@gmail.com",
-			version: "0.3.0 Beta"
+			version: "0.3.2 Beta"
 		}
 		/**
 		 * Set Default Configures
@@ -243,13 +301,12 @@
 			 */
 			$render.start = function(){
 				$render.preload();
-				$mx.wait(
-					'mxRender preload done',
-					function(){
-						$mx.unsay('mxRender preload done');
-						$render.scanElement(document.body);
-					}
-				)
+				$mx.traffic.inLine({
+					signal: 'mxRender preload done',
+					do: function(){
+							$render.scanElement(document.body,1);
+						},
+				});
 			}
 			
 			/**
@@ -293,7 +350,7 @@
 						headElement.appendChild($render.publicCSS);
 
 						//finish preload
-						$mx.say('mxRender preload done',configures.preloadWaiting);
+						$mx.traffic.flash('mxRender preload done');
 					},
 					error: function(){
 						log('Fail when loading item XML.');
@@ -304,21 +361,24 @@
 			/**
 			 * Render
 			 */
-			$render.scanElement = function(element,callback){
-				if (typeof(element) == 'object' && element.hasOwnProperty('childNodes')){
-					if (element.nodeName == 'ITEM' && !element.attributes['mx-rendered']){
+			$render.scanElement = function(element,renderMe,callback,debug){
+				//if (typeof(debug) == 'undefined'){debug = 1;scanCounter++;}else{debug++;}
+				//console.log([scanCounter,debug,element,]);
+				if (typeof(renderMe) == 'undefined'){renderMe = false;}
+				if (typeof(element) == 'object' && element.hasOwnProperty('nodeName')){
+					if (element.nodeName == 'ITEM' && renderMe){
+						//console.log([scanCounter,debug,element,]);
 						$render.renderItem(element);
+					}else{
+						for (var i = 0;i < element.childNodes.length;i++){
+							$render.scanElement(element.childNodes[i],1,function(){},debug);
+						}
 					}
-					for (var i = 0;i < element.childNodes.length;i++){
-						$render.scanElement(element.childNodes[i]);
-					}					
 				}
-				if (typeof(callback) == 'function'){callback();}
 			}
 
 			$render.renderItem = function(element){
 				//prepare
-				delete element.attributes['mx-rendered'];
 				if (!element.attributes['name']){
 					log([element,'has no attribute "name".']);
 					return false;
@@ -361,46 +421,42 @@
 					tempData = mergeObjects(tempData,transportDataStringToData(itemAttributes,itemId));
 					$render.data[itemId] = tempData;
 					if (typeof($render.data[itemId].data) != 'undefined'){$render.data[itemId] = mergeObjects($render.data[itemId],$render.data[itemId].data);}
-					$mx.say(itemId + ' load data done');
+					$mx.traffic.flash(itemId + ' load data done');
 				}
 
 				//add additional CSS
 				var addCss = function(){
-					$mx.unsay(itemId + ' load data done');
 					if (itemTemplateChildNodes['css'] && !$render.addedCSS.indexOf(itemName) > -1){
 						var addCSS = itemTemplateChildNodes['css'].textContent;
 						addCSS = replaceWithObject(itemTemplateChildNodes['css'].textContent,$render.data[itemId]);
 						$render.publicCSS.innerHTML += addCSS;
 						$render.addedCSS.push(itemName);
 					}
-					$mx.say(itemId + ' add css done');
+					$mx.traffic.flash(itemId + ' add css done');
 				}
 
 				//do preload-once
 				var doPreloadOnce = function(){
-					$mx.unsay(itemId + ' add css done');
 					if (itemTemplateChildNodes['preload-once'] && !$render.runPreloadOnce.indexOf(itemName) > -1){
-						var tempFunctionString = formFunctionString(itemTemplateChildNodes['preload-once'].textContent,itemId) + '$mx.say("' + itemId + ' do preload once done");$mx.render.runPreloadOnce.push("' + itemName + '")';
+						var tempFunctionString = formFunctionString(itemTemplateChildNodes['preload-once'].textContent,itemId) + '$mx.traffic.flash("' + itemId + ' do preload once done");$mx.render.runPreloadOnce.push("' + itemName + '")';
 						setTimeout(tempFunctionString,0);
 					}else{
-						$mx.say(itemId + ' do preload once done');
+						$mx.traffic.flash(itemId + ' do preload once done');
 					}
 				}
 
 				//do preload
 				var doPreload = function(){
-					$mx.unsay(itemId + ' do preload once done');
 					if (itemTemplateChildNodes['preload']){
-						var tempFunctionString = formFunctionString(itemTemplateChildNodes['preload'].textContent,itemId) + '$mx.say("' + itemId + ' do preload done");';
+						var tempFunctionString = formFunctionString(itemTemplateChildNodes['preload'].textContent,itemId) + '$mx.traffic.flash("' + itemId + ' do preload done");';
 						setTimeout(tempFunctionString,0);
 					}else{
-						$mx.say(itemId + ' do preload done');
+						$mx.traffic.flash(itemId + ' do preload done');
 					}
 				}
 
 				//render item
 				var doRender = function(){
-					$mx.unsay(itemId + ' do preload done');
 					if (itemTemplateChildNodes['template']){
 						var itemReplacementHTML = itemTemplateChildNodes['template'].textContent;
 						if (element.innerHTML != null){
@@ -409,63 +465,59 @@
 						itemReplacementHTML = replaceWithObject(itemReplacementHTML,$render.data[itemId]);
 						element.innerHTML = itemReplacementHTML;
 					}
-					$mx.say(itemId + ' do render done');
+					$mx.traffic.flash(itemId + ' do render done');
 				}
 
 				//do callback-once
 				var doCallbackOnce = function(){
-					$mx.unsay(itemId + ' do render done');
 					if (itemTemplateChildNodes['callback-once'] && !$render.runPreloadOnce.indexOf(itemName) > -1){
-						var tempFunctionString = formFunctionString(itemTemplateChildNodes['callback-once'].textContent,itemId) + '$mx.say("' + itemId + ' do preload once done");$mx.render.runCallbackOnce.push("' + itemName + '")';
+						var tempFunctionString = formFunctionString(itemTemplateChildNodes['callback-once'].textContent,itemId) + '$mx.traffic.flash("' + itemId + ' do callback once done");$mx.render.runCallbackOnce.push("' + itemName + '")';
 						setTimeout(tempFunctionString,0);
 					}else{
-						$mx.say(itemId + ' do callback once done');
+						$mx.traffic.flash(itemId + ' do callback once done');
 					}
 				}
 
 				//do callback
 				var doCallback = function(){
-					$mx.unsay(itemId + ' do callback once done');
 					if (itemTemplateChildNodes['callback']){
 						var tempFunctionString = formFunctionString(itemTemplateChildNodes['callback'].textContent,itemId);
 						setTimeout(tempFunctionString,0);
 					}
-					$mx.say(itemId + ' do callback done');
+					$mx.traffic.flash(itemId + ' do callback done');
 				}
 
+				$mx.traffic.inLine({
+					signal: itemId + ' load data done',
+					do: addCss
+				});
+				$mx.traffic.inLine({
+					signal: itemId + ' add css done',
+					do: doPreloadOnce
+				});
+				$mx.traffic.inLine({
+					signal: itemId + ' do preload once done',
+					do: doPreload
+				});
+				$mx.traffic.inLine({
+					signal: itemId + ' do preload done',
+					do: doRender
+				});
+				$mx.traffic.inLine({
+					signal: itemId + ' do render done',
+					do: doCallbackOnce
+				})
+				$mx.traffic.inLine({
+					signal: itemId + ' do callback once done',
+					do: doCallback
+				});
+				$mx.traffic.inLine({
+					signal: itemId + ' do callback done',
+					do: function(){
+							$render.scanElement(element,0);
+						}						
+				});
 				loadData();
-				$mx.wait(
-					itemId + ' load data done',
-					addCss
-				);
-				$mx.wait(
-					itemId + ' add css done',
-					doPreloadOnce
-				);
-				$mx.wait(
-					itemId + ' do preload once done',
-					doPreload
-				);
-				$mx.wait(
-					itemId + ' do preload done',
-					doRender
-				);
-				$mx.wait(
-					itemId + ' do render done',
-					doCallbackOnce
-				);
-				$mx.wait(
-					itemId + ' do callback once done',
-					doCallback
-				);
-				$mx.wait(
-					itemId + ' do callback done',
-					function(){
-						$mx.unsay(itemId + ' do callback done');
-						element.setAttribute('mx-rendered',true);
-						$render.scanElement(element);
-					}
-				);
 			}
 		/**
 		 * Auto Start

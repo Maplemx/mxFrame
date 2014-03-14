@@ -18,16 +18,40 @@
 		<content>
 			<css>
 				<![CDATA[
-
+					.content{
+						display:block;
+						width:100%;
+						text-align:center;
+					}
+					.content .main{
+						margin:0 auto;
+						text-align:left;
+						padding-top:3.5em;
+						padding-bottom:2em;
+						padding-left:0.5em;
+						padding-right:0.5em;
+						display:block;
+						width:100%;
+						max-width:800px;
+						min-height:100%;
+					}
+					.content .top-space{
+						display:block;
+						width:100%;
+						height:3.5em;
+					}
+					.content .bottom-space{
+						display:block;
+						width:100%;
+						height:2em;
+					}
 				]]>
 			</css>
 			<template>
 				<![CDATA[
-					<div style = "display:block;width:100%;height:3.5em;"></div>
-					<div style = "padding-left:1em;padding-right:1em;">
+					<div class = "main">
 						{$html}
 					</div>
-					<div style = "display:block;width:100%;height:2em;"></div>
 				]]>
 			</template>
 		</content>
@@ -65,9 +89,10 @@
 						"nav-default-selected": 1,
 						"nav-background-color": "#CCC",
 						"nav-text-color": "#333",
+						"nav-border-color": "#000",
 						"nav-hover-background-color": "#EEE",
 						"nav-hover-text-color": "#555",
-						"nav-selected-background-color": "#F0F0F0",
+						"nav-selected-background-color": "#EEE",
 						"nav-selected-text-color": "#000",
 					}
 				]]>
@@ -83,11 +108,12 @@
 						height:2em;
 						line-height:2em;
 						border-bottom:{$border-color};
-						box-shadow:0px 1px 3px {$shadow-color};
+						box-shadow:0px 2px 3px {$shadow-color};
 						display:block;
 						padding-top:0.5em;
 						padding-bottom:0.5em;
 						padding-left:0.5%;
+						overflow:hidden;
 					}
 					.mx-header .mx-logo{					
 						float:left;
@@ -112,6 +138,7 @@
 						selected = "{$nav-default-selected}"
 						background-color = "{$nav-background-color}"
 						text-color = "{$nav-text-color}"
+						border-color = "{$nav-border-color}"
 						hover-background-color = "{$nav-hover-background-color}"
 						hover-text-color = "{$nav-hover-text-color}"
 						selected-background-color = "{$nav-selected-background-color}"
@@ -185,9 +212,10 @@
 							selected: 1,
 							"background-color": "#CCC",
 							"text-color": "#333",
+							"border-color": "#999",
 							"hover-background-color": "#EEE",
 							"hover-text-color": "#555",
-							"selected-background-color": "#F0F0F0",
+							"selected-background-color": "#EEE",
 							"selected-text-color": "#000",
 						}
 					]]>
@@ -210,6 +238,7 @@
 							background: {$background-color};
 							color: {$text-color};
 							border-radius: 3px;
+							border: 1px {$border-color} solid;
 						}
 
 						.mx-nav ul li:hover{
@@ -293,23 +322,507 @@
 			</preload>
 			<template>
 				<![CDATA[
-					Develop by <a href = "mailto:{$email}">{$author}</a>. Render by mxRender {$version}. HOW IT'S BUILT: <a href = "{$itemPath}" target = "_blank">click here</a>.
+					<span class = "info_b">Develop by <a href = "mailto:{$email}">{$author}</a>. </span>Render by mxRender {$version}.<span class = "info_b"> HOW IS IT BUILT: <a href = "{$itemPath}" target = "_blank">click here</a>.</span>
 				]]>
 			</template>
 		</mx-tailer>
-		<mx-button>
+		<!--表格控件开始-->
+		<mx-table>
+			<data>
+				<![CDATA[
+					{
+						"title-background-color": "#EEE",
+						"content-background-color": "#FAFAFA",
+						"border-color": "#CCC",
+						"hover-color": "#FFE",
+						//"table-min-width": "45em",
+						"td-min-width": "5em",
+						content:[
+							{
+								ID: 1,
+								标题: '测试标题1',
+								内容: '测试内容1',
+								操作: '<item name = "mx-button" value = "点我一下" content = "1" do = "$=function(content){alert(content);return false;}"></item>'
+							},
+							{
+								ID: 2,
+								标题: '测试标题2',
+								内容: '测试内容2',
+								操作: '<item name = "mx-button" value = "点我一下" content = "2" do = "$=function(content){alert(content);return false;}"></item>'
+							},
+						],
+					}
+				]]>
+			</data>
 			<css>
 				<![CDATA[
-					.mx-button{
+					.mx-table table{
+						border:1px {$border-color} solid;
+						background:{$content-background-color};
+						border-collapse:collapse;
+						margin-top: 0.25em;
+						margin-bottom: 0.25em;
+						min-width: {$table-min-width};
+					}
+					.mx-table table tr.mxtable_title{
+						background:{$title-background-color};
+					}
+					.mx-table table tr td{
+						border:1px {$border-color} solid;
+						padding:0.25em;
+						min-width: {$td-min-width};
+						text-align: center;
+					}
+					.mx-table table tr.mxtable_title td{
+						font-weight:bold;
+					}
+					.mx-table table tr:hover{
+						background:{$hover-color};
+					}
+				]]>
+			</css>
+			<preload>
+				<![CDATA[
+					$this.innerHTML = '';
+					var table = document.createElement('table');
+					for (var i = 0;i < $data.content.length;i++){
+						if (i == 0){
+							var tr_title = document.createElement('tr');
+							tr_title.setAttribute('class','mxtable_title');
+							for (var title in $data.content[i]){
+								var td_title = document.createElement('td');
+								td_title.innerHTML = title;
+								tr_title.appendChild(td_title);
+							}
+							table.appendChild(tr_title);
+						}
+						var tr = document.createElement('tr');
+						for (var title in $data.content[i]){
+							var td = document.createElement('td');
+							td.innerHTML = $data.content[i][title];
+							tr.appendChild(td);
+						}
+						table.appendChild(tr);
+					}
+					$this.appendChild(table);
+					$mx.render.scanElement($this);
+				]]>
+			</preload>
+		</mx-table>
+		<!--表格控件结束-->
+		<!--表单控件开始-->
+		<mx-form>
+			<data>
+				<![CDATA[
+					{
+						"form-name": "form",
+						"border-color": "#CCC",
+						"background-color": "#FAFAFA",
+						content:[
+							{
+								type: "text",
+								title: "文本样例",
+								content: "样例文字",
+								tip: "提示样例",
+							},
+							{
+								type: "input",
+								title: "输入条样例",
+								content: "",
+								width: "20em",
+								placeholder: "请输入文字",
+								tip: "提示样例",
+							},
+							{
+								type: "textarea",
+								title: "文本区样例",
+								content: "",
+								width: "30em",
+								height: "20em",
+								placeholder: "请输入大段的文字",
+								tip: "提示样例",
+							},
+							{
+								type: "select",
+								title: "选择框样例",
+								"form-name": "select1",
+								content: "$=[{name:'选项1',value:'值1'},{name:'选项2',value:'值2'}]",
+								target: "select2",
+								tip: "提示样例",
+							},
+							{
+								type: "select",
+								title: "联动选择框样例",
+								"form-name": "select2",
+								"relate-content": "$={值1:[{name:'你选了选项1',value:'值3'}],值2:[{name:'你选了选项2',value:'值4'}]}",
+								relate: "select1",
+								tip: "提示样例",
+							},
+							{
+								type: "submit",
+								title: "提交样例",
+								value: "提交表单",
+								tip: "提示样例",
+							},
+						],
+						do: function(){console.log('form submit');return false;},
+					}
+				]]>
+			</data>
+			<css>
+				<![CDATA[
+					.mx-form form table{
+						border:1px {$border-color} solid;
+						background:{$background-color};
+						border-radius:3px;
+						padding:0.25em;
+					}
+					.mx-form form table tr{
+						line-height: 2em;
+					}
+					.mx-form form table tr td.mxform_title{
+						font-weight: bold;
+					}
+					.mx-form form table tr td.mxform_tip{
+						font-size: 80%;
+						color: #999;
+					}
+				]]>
+			</css>
+			<preload>
+				<![CDATA[
+					$this.innerHTML = '';
+					var form = document.createElement('form'),
+						table = document.createElement('table'),
+						createMxitem = function(itemName,attributes){
+							var item = document.createElement('item');
+							item.setAttribute('name',itemName);
+							for (var name in attributes){
+								if (name != 'type' && name != 'title' && name != 'tip'){
+									item.setAttribute(name,attributes[name]);
+								}
+							}
+							return item;
+						};
+					form.setAttribute('name',$data['form-name']);
+					for (var i = 0;i < $data.content.length;i++){
+						var tr = document.createElement('tr'),
+							title = document.createElement('td'),
+							content = document.createElement('td'),
+							tip = document.createElement('td');
+						title.setAttribute('class','mxform_title');
+						content.setAttribute('class','mxform_content');
+						tip.setAttribute('class','mxform_tip');
+						title.innerHTML = $data.content[i].title;
+						switch ($data.content[i].type){
+							case 'text':
+								content.innerHTML = $data.content[i].content;
+								break;
+							case 'input':
+								content.appendChild(createMxitem('mx-input',$data.content[i]));
+								break;
+							case 'textarea':
+								content.appendChild(createMxitem('mx-textarea',$data.content[i]));
+								break;
+							case 'select':
+								content.appendChild(createMxitem('mx-select',$data.content[i]));
+								break;
+							case 'submit':
+								content.appendChild(createMxitem('mx-button',$data.content[i]));
+								break;
+						}
+						tip.innerHTML = $data.content[i].tip;
+						tr.appendChild(title);
+						tr.appendChild(content);
+						tr.appendChild(tip);
+						table.appendChild(tr);
+					}
+					form.appendChild(table);
+					form.onsubmit = $data.do;
+					$this.appendChild(form);
+				]]>
+			</preload>
+		</mx-form>
+		<!--表单控件结束-->
+			<!--文本输入条-->
+			<mx-input>
+				<data>
+					<![CDATA[
+						{
+							"form-name": "form-input",
+							content: "",
+							placeholder: "请输入文字",
+							"border-color": "#999",
+							"background-color": "#FFF",
+							"hover-color": "#FFE",
+							width: "20em",
+						}
+					]]>
+				</data>
+				<css>
+					<![CDATA[
+						.mx-input input{
+							font-size: 1em;
+							border: 1px {$border-color} solid;
+							min-width: 5em;
+							width: {$width};
+							height: 1em;
+							line-height: 1em;
+							padding: 0.25em;
+							border-radius: 3px;
+							background: {$background-color}
+						}
 
+						.mx-input input:hover,input:focus{
+							background: {$hover-color};
+						}
+					]]>
+				</css>
+				<template>
+					<![CDATA[
+						<input type = "text" placeholder = "{$placeholder}" name = "{$form-name}" value = "{$content}"/>
+					]]>
+				</template>
+			</mx-input>
+			<!--文本输入区-->
+			<mx-textarea>
+				<data>
+					<![CDATA[
+						{
+							"form-name": "form-textarea",
+							content: "",
+							"border-color": "#999",
+							"background-color": "#FFF",
+							"hover-color": "#FFFFEE",
+							width: "30em",
+							height: "20em",
+							placeholder: "请输入大段的文字",
+							tip: "提示样例",
+						}
+					]]>
+				</data>
+				<css>
+					<![CDATA[
+						.mx-textarea textarea{
+							font-size: 1em;
+							border: 1px {$border-color} solid;
+							min-width: 5em;
+							width: {$width};
+							height: {$height};
+							line-height: 1em;
+							padding: 0.25em;
+							border-radius: 3px;
+							background: {$background-color}
+						}
+
+						.mx-textarea textarea:hover,textarea:focus{
+							background: {$hover-color};
+						}
+					]]>
+				</css>
+				<template>
+					<![CDATA[
+						<textarea placeholder = "{$placeholder}" name = "{$form-name}">{$content}</textarea>
+					]]>
+				</template>
+			</mx-textarea>
+			<!--下拉菜单-->
+			<mx-select>
+				<data>
+					<![CDATA[
+						{
+							"form-name": "form-select",
+							//content: [{name:'选项1',value:'值1'},{name:'选项2',value:'值2',default:true}],
+							"border-color": "#999",
+							"background-color": "#FCFCFC",
+							"hover-color": "#FFE",
+							width: "20em",
+							target: "",
+						}
+					]]>
+				</data>
+				<css>
+					<![CDATA[
+						.mx-select select{
+							font-size: 1em;
+							width: {$width};
+							height: 2em;
+							border: 1px {$border-color} solid;
+							background: {$background-color};
+						}
+
+						.mx-select select:hover{
+							background: {$hover-color};
+						}
+					]]>
+				</css>
+				<preload>
+					<![CDATA[
+						$this.innerHTML = '';
+						var select = document.createElement('select');
+						select.setAttribute('name',$data['form-name']);
+						if ($data.relate != null && $data.relate != ''){
+							var relate = document.getElementsByName($data.relate)[0];
+							$data.content = $data['relate-content'][relate.value];
+						}
+						if ($data.content != null && $data.content != ''){
+							for(var i = 0;i < $data.content.length;i++){
+								select.add(new Option($data.content[i].name,$data.content[i].value));
+								if ($data.content[i].default){
+									select.options[i].selected = 'true';
+								}
+							}
+						}
+						if ($data.target != null && $data.target != ''){
+							select.onchange = function(){
+								var target = document.getElementsByName($data.target)[0].parentNode;
+								target.setAttribute('relate',$data['form-name']);
+								$mx.render.renderItem(target);
+							}
+						}
+						$this.appendChild(select);
+					]]>
+				</preload>
+				<relate-select-demo>
+					<![CDATA[
+						<script>
+							select1 = [{name:1,value:1},{name:2,value:2}];
+							select2 = {1:[{name:3,value:3}],2:[{name:4,value:4}]};
+						</script>
+						<item name = "mx-select"
+							form-name = "select1"
+							content = "$=select1"
+							target = "select2"
+						></item>
+						<item name = "mx-select"
+							form-name = "select2"
+							relate-content = "$=select2"
+						></item>
+					]]>
+				</relate-select-demo>
+			</mx-select>
+			<!--按钮-->
+			<mx-button>
+				<data>
+					<![CDATA[
+						{
+							"border-color": "#999",
+							"background-color": "#EEE",
+							"hover-color": "#FAFAFA",
+							value: "请点击",
+							content: [],
+							//"do": function(){console.log('click button');}
+						}
+					]]>
+				</data>
+				<css>
+					<![CDATA[
+						.mx-button button{
+							display:block;
+							font-size:1em;
+							min-width:2em;
+							padding:0.25em;
+							border:1px {$border-color} solid;
+							background:{$background-color};
+							border-radius:3px;
+							text-align:center;
+							height:2em;
+							line-height:1em;
+						}
+
+						.mx-button button:hover{
+							background:{$hover-color};
+							cursor: pointer;
+						}
+					]]>
+				</css>
+				<template>
+					<![CDATA[
+						<button>{$value}</button>
+					]]>
+				</template>
+				<callback>
+					<![CDATA[
+						$this.onclick = function(){
+							return $data.do($data.content);
+						};
+					]]>
+				</callback>
+			</mx-button>
+		<!--字号调整小控件-->
+		<mx-font-setting>
+			<data>
+				<![CDATA[
+					{
+						"background-color": "#CCC",
+						"border-color": "#999",
+						"text-color": "#333",
+						"hover-text-color": "#999",
+						do:{
+							addFontSize: function(){
+								var nowFontSize = document.body.style.fontSize;
+								if (nowFontSize == ''){
+									nowFontSize = '1em';
+								}
+								var unit = nowFontSize.substr(-2);
+								nowFontSize = (nowFontSize.substr(0,nowFontSize.length - 2) * 1.1) + unit;
+								document.body.style.fontSize = nowFontSize;
+							},
+							minusFontSize: function(){
+								var nowFontSize = document.body.style.fontSize;
+								if (nowFontSize == ''){
+									nowFontSize = '1em';
+								}
+								var unit = nowFontSize.substr(-2);
+								nowFontSize = (nowFontSize.substr(0,nowFontSize.length - 2) / 1.1) + unit;
+								document.body.style.fontSize = nowFontSize;
+							},
+						},
+					}
+				]]>
+			</data>
+			<css>
+				<![CDATA[
+					.mx-font-setting{
+						display:inline-block;
+						line-height:1em;
+						height:1.21em;
+						padding:0.25em;						
+						background:{$background-color};
+						border:1px {$border-color} solid;
+						border-radius:3px;
+						color:{$text-color};
+						z-index:100;
+					}
+					.mx-font-setting button{
+						display:inline-block;
+						width:1.25em;
+						margin:0;
+						padding:0;
+						background:none;
+						border:none;
+						font-size:100%;
+						color:{$text-color};
+					}
+					.mx-font-setting button:hover{
+						color:{$hover-text-color};
+						cursor:pointer;
 					}
 				]]>
 			</css>
 			<template>
 				<![CDATA[
-
+					调整字号：<button do = "addFontSize">+</button><button do = "minusFontSize">-</button>
 				]]>
 			</template>
-		</mx-button>
+			<callback>
+				<![CDATA[
+					var buttonGroup = $this.getElementsByTagName('button');
+					for (var i = 0;i < buttonGroup.length;i++){
+						buttonGroup[i].onclick = $data.do[buttonGroup[i].attributes['do'].value];
+					}
+				]]>
+			</callback>
+		</mx-font-setting>
 	</items>
 </mxRenderIntro>

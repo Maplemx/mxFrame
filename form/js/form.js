@@ -3,8 +3,8 @@ var _app = {
 	header:{
 		//LOGO配置
 		logo:{
-			text1: "Event",
-			text2: "Manager",			
+			text1: "Event ",
+			text2: "Manager",
 		},
 		//导航条配置
 		nav:{
