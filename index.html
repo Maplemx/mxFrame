@@ -3,7 +3,29 @@
 	<head>
 	</head>
 	<body>
-		<item name = "demo"></item>
+		<item name = "mxMain"
+			data = "{
+				logo:{
+					text1: 'MX',
+					text2: 'RENDER',
+				}
+			}"
+			action = "{
+				navClick: function(){
+					console.log($this);
+					document.getElementById('mxMessage').style.display = 'block';
+				}
+			}">
+			<item name = "mxMessage"
+				  id = "mxMessage"
+				  action = "{
+				  	confirm: function(){
+				  		$thisItem.style.display = 'none';
+				  	}
+				  }"></item>
+			</item>
 	</body>
 </html>
-<script type = "text/javascript" src = "js/mx.render.js"></script>
+<script src = "js/mx.render.js"></script>
+<script>
+</script>

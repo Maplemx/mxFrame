@@ -1,0 +1,48 @@
+<mxRender>
+	<mxMain>
+		<data>
+			{
+				logo:{
+					text1: "MX",
+					text2: "RENDER",
+				},
+				nav:{
+					list: [
+						"INTRO"
+					],
+				}
+			}
+		</data>
+		<action>
+			{
+				navClick:{
+					bind: ".option",
+					event: "onclick",
+				},
+			}
+		</action>
+		<css>
+			.mxMain{
+				padding-top: 2em;
+				padding-bottom: 2em;
+			}
+			.mxMain .mxHeader{
+				position: fixed;
+				left: 0;
+				top: 0;
+			}
+			.mxMain .mxTailer{
+				position: fixed;
+				left: 0;
+				bottom: 0;
+			}
+		</css>
+		<template>
+			<![CDATA[
+				<item name = "mxHeader">1</item>
+				<div class = "mainContent">{$html}</div>
+				<item name = "mxTailer"></item>
+			]]>
+		</template>
+	</mxMain>
+</mxRender>
