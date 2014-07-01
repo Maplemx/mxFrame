@@ -1,6 +1,6 @@
 if (typeof($mx) != 'object'){var $mx = {};}
 /**
- * mxRender v 0.4 Beta
+ * mxRender v 0.4.1 Beta
  * an auto render frame
  * author: maplemx
  * email: maplemx@gmail.com
@@ -370,7 +370,11 @@ if (typeof($mx) != 'object'){var $mx = {};}
 				this.text = undefined;
 			}
 			this.toObject = function(){
-				return eval('(' + this.text + ')');
+				if (this.text && this.text.replace(/(\r|\n|\t)/gm,'')){
+					return eval('(' + this.text + ')');
+				}else{
+					return undefined;
+				}
 			}
 		}
 		//Public Atrributes
@@ -400,14 +404,14 @@ if (typeof($mx) != 'object'){var $mx = {};}
 	})($mx.xml);
 
 	/**
-	 * mxRender v 0.4.0 Beta
+	 * mxRender v 0.4.1 Beta
 	 */
 	//REQUIRE:mxAjax mxXMLReader mxSignal
 	if (typeof($mx.render) === 'undefined'){$mx.render = {};}
 	(function($r){
 		//Information
 		$r.info = {
-			version: "0.4.0 Beta",
+			version: "0.4.1 Beta",
 		}
 		//Configures
 		$r.configures = {
@@ -520,7 +524,7 @@ if (typeof($mx) != 'object'){var $mx = {};}
 				},
 				scanElement = function(element){
 					if (typeof(element) === 'object'){
-						if (element.nodeName == 'ITEM'){
+						if (element.nodeName == 'ITEM' || (element.attributes && element.attributes['mx'])){
 							renderItem(element);
 						}else{
 							scanElementChildNodes(element);
@@ -608,25 +612,44 @@ if (typeof($mx) != 'object'){var $mx = {};}
 							sandboxData[itemId].$data = itemTemplate.tag('data').toObject();
 							$mx.signal.flash('mxRender_' + itemId + '_data');
 						}
-						if (element.attributes['action'] && element.attributes['action'].value != ''){
-							sandboxData[itemId].$action = eval('(' + element.attributes['action'].value + ')');
+						//load event
+						if (element.attributes['event'] && element.attributes['event'].value != ''){
+							sandboxData[itemId].$event = eval('(' + element.attributes['event'].value + ')');
+							$mx.signal.flash('mxRender_' + itemId + '_event');
 						}else{
-							sandboxData[itemId].$action = undefined;
+							sandboxData[itemId].$event = undefined;
+							$mx.signal.flash('mxRender_' + itemId + '_event');
+						}
+						//load method
+						if (element.attributes['method'] && element.attributes['method'].value != ''){
+							sandboxData[itemId].$method = mergeObjects(itemTemplate.tag('method').toObject(),eval('(' + element.attributes['method'].value + ')'));
+							$mx.signal.flash('mxRender_' + itemId + '_method');
+						}else{
+							sandboxData[itemId].$method = itemTemplate.tag('method').toObject();
+							$mx.signal.flash('mxRender_' + itemId + '_method');
+						}
+						//load global
+						if (element.attributes['global'] && element.attributes['global'].value != ''){
+							sandboxData[itemId].$global = mergeObjects(itemTemplate.tag('global').toObject(),eval('(' + element.attributes['global'].value + ')'));
+							$mx.signal.flash('mxRender_' + itemId + '_global');
+						}else{
+							sandboxData[itemId].$global = itemTemplate.tag('global').toObject();
+							$mx.signal.flash('mxRender_' + itemId + '_global');
 						}
 					}
 
 					//common functions
 					var formFunctionString = function(main,step){
-							var result = 'var $$ = $mx.render.sandboxData["' + itemId + '"],'
-								+ '    $data = $$.$data,'
-								+ '    $action = $$.$action,'
-								+ '    $this = $$.$this;'
+							var result = 'var $sandbox = $mx.render.sandboxData["' + itemId + '"],'
+								+ '    $data = $sandbox.$data,'
+								+ '    $event = $sandbox.$event,'
+								+ '    $this = $sandbox.$this;'
 								+ main;						
 							if (step == 'preloadOnce' || step == 'callbackOnce'){
 								result += '$mx.render.' + step + 'push("' + itemName + '")';
 							}
 								result += '$mx.render.sandboxData["' + itemId + '"].$data = $data;' + 
-								'$mx.render.sandboxData["' + itemId + '"].$action = $action;' +
+								'$mx.render.sandboxData["' + itemId + '"].$event = $event;' +
 								'$mx.signal.flash("mxRender_' + itemId + '_' + step + '");';
 							return result;
 						},
@@ -640,7 +663,12 @@ if (typeof($mx) != 'object'){var $mx = {};}
 							}	
 						};
 
-					$mx.signal.inWaits('mxRender_' + itemId + '_data',function(){
+					$mx.signal.inWaits([
+							'mxRender_' + itemId + '_data',
+							'mxRender_' + itemId + '_event',
+							'mxRender_' + itemId + '_method',
+							'mxRender_' + itemId + '_global',
+						],function(){
 
 						//add to public CSS
 						if (!renderRecord.css.indexOf(itemName) > -1){
@@ -687,13 +715,13 @@ if (typeof($mx) != 'object'){var $mx = {};}
 					$mx.signal.inWaits('mxRender_' + itemId + '_callback',function(){
 						element.parentNode.insertBefore(renderedItem,element);
 						element.remove();
-						if (sandboxData[itemId].$action){
-							if (sandboxData[itemId].$action['onShow']){
+						if (sandboxData[itemId].$event){
+							if (sandboxData[itemId].$event['onShow']){
 								eval("(function(){" +
 									"var $thisItem = renderedItem," +
 										"$data = sandboxData[itemId].$data;" +
 										"$this = bindItem[" + i + "];" +
-									"(" + sandboxData[itemId].$action['onShow'] + ")();" +
+									"(" + sandboxData[itemId].$event['onShow'] + ")();" +
 									"sandboxData[itemId].$data = $data;" +
 								"})()");
 							}
@@ -705,8 +733,8 @@ if (typeof($mx) != 'object'){var $mx = {};}
 				},
 				scanElementForBinding = function(element){
 					if (typeof(element) === 'object'){
-						if (element.nodeName == 'ITEM' && element.attributes['mx-render-item']){
-							bindActionToItem(element);
+						if ((element.nodeName == 'ITEM' || (element.attributes && element.attributes['mx'])) && element.attributes['mx-render-item']){
+							bindActionAndEventToItem(element);
 						}
 						scanElementChildNodesForBinding(element);
 					}
@@ -716,32 +744,55 @@ if (typeof($mx) != 'object'){var $mx = {};}
 						scanElementForBinding(element.childNodes[i]);
 					}
 				},
-				bindActionToItem = function(element){
+				bindActionAndEventToItem = function(element){
 					var itemName = element.attributes['class'].value,
 						itemId = element.attributes['id'].value,
 						itemTemplate = $mx.xml.tag(itemName),
-						actionHooks = itemTemplate.tag('action').toObject(),
-						actions = sandboxData[itemId].$action;
-					for (var actionName in actions){
-						if (actionHooks[actionName]){
-							var bind = actionHooks[actionName].bind,
-								event = actionHooks[actionName].event;
+						methods = sandboxData[itemId].$method,
+						globals = sandboxData[itemId].$global,
+						eventHooks = itemTemplate.tag('event').toObject(),
+						events = sandboxData[itemId].$event;
+					for (var methodName in methods){
+						eval("element['" + methodName + "'] = function(){" +
+								"var $this = element;" +
+								"(" + sandboxData[itemId].$method[methodName] +")(arguments);" +
+							"}");
+					}
+					for (var globalName in globals){
+						eval("window." + globalName + " = function(){" +
+								"var $this = element;" +
+								"(" + globals[globalName] +")(arguments);" +
+							"}");
+					}
+					for (var eventName in eventHooks){
+						if (eventHooks[eventName]){
+							var bind = eventHooks[eventName].bind,
+								event = eventHooks[eventName].event;
 							if (bind == 'this'){
 								var bindItem = [element];
 							}else{
 								var bindItem = element.querySelectorAll(bind);
 							}
 							for (var i = 0;i < bindItem.length;i++){
-								eval("bindItem[" + i + "]['" + event + "'] = function(){" +
-									"var $thisItem = element," +
-										"$data = sandboxData[itemId].$data," +
-										"$this = bindItem[" + i + "];" +
-									"(" + sandboxData[itemId].$action[actionName] + ")();" +
-								"}");
+								if (sandboxData[itemId].$event && sandboxData[itemId].$event[eventName]){
+									var func = sandboxData[itemId].$event[eventName];
+								}else if (eventHooks[eventName].func){
+									var func = eventHooks[eventName].func.toString();
+								}else{
+									var func = undefined;
+								}
+								if (func){
+									eval("bindItem[" + i + "]['" + event + "'] = function(){" +
+										"var $thisItem = element," +
+											"$data = sandboxData[itemId].$data," +
+											"$this = bindItem[" + i + "];" +
+										"(" + func + ")();" +
+									"}");
+								}
 							}
 						}else{
-							if (actionName != "onShow"){
-								log([element,'have not defined action "' + actionName + '".']);
+							if (eventName != "onShow"){
+								log([element,'have not defined event "' + eventName + '".']);
 							}
 						}
 					}
@@ -775,6 +826,113 @@ if (typeof($mx) != 'object'){var $mx = {};}
 				$mx.render.start();
 			}
 		});
+	/**
+	 * mxSelector v 0.1.0 Beta
+	 */
+	(function($mx){
+		$mx.selector = function(query){
+			var allElementsDo = function(job){
+				var doType = typeof(job);
+				switch(doType){
+					case 'string':
+						for (var i = 0;i < mxSelector.all.length;i++){
+							if (typeof(mxSelector.all[i][job]) === 'function'){
+								mxSelector.all[i][job](arguments);
+							}
+						}		
+						break;
+					case 'function':
+						for (var i = 0;i < mxSelector.all.length;i++){
+							$this = mxSelector.all[i];
+							job($this);
+						}
+						break;
+				}
+			}
+
+			var mxSelector = {};
+			if (query && query.nodeName){
+				mxSelector.first = query;
+				mxSelector.all = [query];
+			}else{
+				mxSelector.first = document.querySelectorAll(query)[0];
+				mxSelector.all = document.querySelectorAll(query);
+			}
+			mxSelector.call = function(methodName){
+				allElementsDo(methodName);
+			}
+			mxSelector.show = function(){
+				allElementsDo(function($this){
+					$this.style.display = 'block';
+				});
+			}
+			mxSelector.hide = function(){
+				allElementsDo(function($this){
+					$this.style.display = 'none';
+				});
+			}
+			mxSelector.remove = function(){
+				allElementsDo(function($this){
+					$this.remove();
+				});
+			}
+			mxSelector.append = function(element){
+				if (!element.nodeName){
+					var content = element;
+					element = document.createElement('div');
+					element.innerHTML = content;
+				}
+				allElementsDo(function($this){
+					$this.appendChild(element.cloneNode(true));
+				});
+			}
+			mxSelector.prepend = function(element){
+				if (!element.nodeName){
+					var content = element;
+					element = document.createElement('div');
+					element.innerHTML = content;
+				}
+				allElementsDo(function($this){
+					$this.insertBefore(element.cloneNode(true),$this.childNodes[0]);
+				});
+			}
+			mxSelector.before = function(element){
+				if (!element.nodeName){
+					var content = element;
+					element = document.createElement('div');
+					element.innerHTML = content;
+				}
+				allElementsDo(function($this){
+					$this.parentNode.insertBefore(element.cloneNode(true),$this);
+				});				
+			}
+			mxSelector.after = function(element){
+				if (!element.nodeName){
+					var content = element;
+					element = document.createElement('div');
+					element.innerHTML = content;
+				}
+				allElementsDo(function($this){
+					$this.parentNode.appendChild(element.cloneNode(true),$this);
+				});				
+			}
+			mxSelector.html = function(content){
+				if (element){
+					allElementsDo(function($this){
+						$this.innerHTML = content;
+					})
+				}else{
+					return mxSelector.first.innerHTML;
+				}
+			}
+			mxSelector[0] = mxSelector.first;
+			if (mxSelector.first){
+				return mxSelector;
+			}else{
+				return undefined;
+			}
+		}
+	})($mx)
 
 	/**
  	 * Short Cuts
@@ -782,5 +940,15 @@ if (typeof($mx) != 'object'){var $mx = {};}
  	$mx.l = $mx.line;
  	$mx.s = $mx.signal;
  	$mx.r = $mx.render;
- 	$r = $mx.render;
+ 	if (typeof($r) === 'undefined'){var $r = $mx.render;}
  	$mx.x = $mx.xml;
+ 	if (typeof($) === 'undefined'){var $ = $mx.selector;}
+ 	if (typeof($$) === 'undefined'){
+ 		var $$ = function(query){
+ 			if ($mx.selector(query)){
+ 				return $mx.selector(query).first;
+ 			}else{
+ 				return undefined;
+ 			}
+ 		}
+ 	}

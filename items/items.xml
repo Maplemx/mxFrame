@@ -57,14 +57,14 @@
 				},
 			}
 		</data>
-		<action>
+		<event>
 			{
 				navClick:{
 					bind: ".option",
 					event: "onclick",
 				},
 			}
-		</action>		
+		</event>		
 		<template>
 			<![CDATA[
 				<div class = "logo">
@@ -133,6 +133,7 @@
 				border: 1px #CCC solid;
 				border-radius: 3px;
 				background: #FFF;
+				display: none;
 			}
 			.mxMessage .title{
 				width: 100%;
@@ -154,19 +155,19 @@
 				padding-bottom: 1em;
 				text-align: center;
 			}
-			.mxMessage .action{
+			.mxMessage .event{
 				width: 100%;
 				line-height: 2em;
 				text-align: center;
 			}
-			.mxMessage .action #confirm{
+			.mxMessage .event #confirm{
 				padding: 0.25em;
 				margin: 0;
 				border: 1px #CCC solid;
 				background: #EEE;
 				border-radius: 3px;
 			}
-			.mxMessage .action #confirm:hover{
+			.mxMessage .event #confirm:hover{
 				background: #DDD;
 				cursor: pointer;
 			}
@@ -181,19 +182,33 @@
 				}
 			}
 		</data>
-		<action>
+		<event>
 			{
 				confirm: {
 					bind: "#confirm",
 					event: "onclick",
+					func: function(){
+						$($thisItem).hide();
+					}
 				}
 			}
-		</action>
+		</event>
+		<global>
+			{
+				mxMessage: function(arg){
+					if (!arg[0]){arg[0] = 'NOTICE';}
+					if (!arg[1]){arg[1] = '';}
+					$this.querySelectorAll('.title')[0].innerHTML = arg[0];
+					$this.querySelectorAll('.content')[0].innerHTML = arg[1];
+					$this.style.display = 'block';
+				},
+			}
+		</global>
 		<template>
 			<![CDATA[
 				<div class = "title">{$title}</div>
 				<div class = "content">{$content}</div>
-				<div class = "action">
+				<div class = "event">
 					<button id = "confirm">好的</button>
 				</div>
 			]]>

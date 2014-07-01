@@ -6,24 +6,17 @@
 		<item name = "mxMain"
 			data = "{
 				logo:{
-					text1: 'MX',
-					text2: 'RENDER',
-				}
+					text1: 'Hello',
+					text2: 'mxRender',
+				},
 			}"
-			action = "{
+			event = "{
 				navClick: function(){
-					console.log($this);
-					document.getElementById('mxMessage').style.display = 'block';
-				}
-			}">
-			<item name = "mxMessage"
-				  id = "mxMessage"
-				  action = "{
-				  	confirm: function(){
-				  		$thisItem.style.display = 'none';
-				  	}
-				  }"></item>
-			</item>
+					$('.mxMessage').show();
+				},
+			}"></item>
+		<div mx name = "mxMessage">
+		</div>
 	</body>
 </html>
 <script src = "js/mx.render.js"></script>
