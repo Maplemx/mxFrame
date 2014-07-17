@@ -172,6 +172,7 @@
 			</template>
 			<callback>
 				<![CDATA[
+					console.log($data);
 					if ($data.api){
 						var tableBody = $this.querySelector('tbody'),
 							data = $data.api,

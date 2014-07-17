@@ -9,7 +9,7 @@ var $mx = $mx ? $mx : {};
 		tunnels[tunnelName] = tunnels[tunnelName] ? tunnels[tunnelName] : 
 		{
 			signals: [],
-			lines: {},
+			lines: [],
 			empty: [],
 		};
 
@@ -53,7 +53,7 @@ var $mx = $mx ? $mx : {};
 			tryEmpty();
 		}
 		this.debug = function(){
-			return tunnels[tunnelName];
+			return tunnels;
 		}
 		return this;
 	}
@@ -64,75 +64,127 @@ var $mx = $mx ? $mx : {};
 })($mx);
 
 /**
- * mxAjax v 0.1.2 Beta
+ * mxAjax v 0.2.0 Beta
  */
+var $mx = $mx ? $mx : {};
 (function($mx){
-	$mx.ajax = function(ajaxParams){
-		if (!ajaxParams){console.warn('[Ajax request fail] $mx.ajax need to input argument object!');return false;}
-		var method = ajaxParams.method ? ajaxParams.method : 'get',
-			type = ajaxParams.type ? ajaxParams.type : method,
-			url = ajaxParams.url,
-			data = ajaxParams.data,
-			dataType = ajaxParams.dataType ? ajaxParams.dataType : 'text',
-			success = ajaxParams.success,
-			error = ajaxParams.error,
-			errorCallbackCount = 0;
+	$mx.ajax = function(ajaxArguments){
+		if (!ajaxArguments){console.warn('[Ajax request fail] no ajax argument object!');return false;}
+		var url = ajaxArguments.url,
+			method = ajaxArguments.method ? ajaxArguments.method.toLowerCase() : (ajaxArguments.type ? ajaxArguments.type.toLowerCase() : 'get'),
+			dataType = ajaxArguments.dataType ? ajaxArguments.dataType.toLowerCase() : null,
+			data = ajaxArguments.data ? ajaxArguments.data : null,
+			headers = (typeof(ajaxArguments.headers) === 'object') ? ajaxArguments.headers : null,
+			success = (typeof(ajaxArguments.success) === 'function') ? ajaxArguments.success : null,
+			error = (typeof(ajaxArguments.error) === 'function') ? ajaxArguments.error : null,
+			sync = ajaxArguments.sync ? (typeof(ajaxArguments.sync) === 'boolean' ? ajaxArguments.sync : true) : true,
+			errorCallbackCount = 0,
+			requestUrl = url,
+			requestData;
+		if (!url){console.warn('[Ajax request fail] url is empty!');return false;}
 
-		type = type.toString().toLowerCase();
-		dataType = dataType.toLowerCase();
-		if (!url){console.warn('[Ajax request fail] have no url!');return false;}
-
-		var dataFormat = function(data){
-			var result = '';
-			if (typeof(data) == 'object'){
-				for (var key in data){
-					result += key + '=' + encodeURIComponent(data[key]) + '&';
+		var createXHR = function(){
+			if (window.XMLHttpRequest){
+				return new XMLHttpRequest();
+			}else if (window.ActiveXObject){
+				if (typeof(arguments.callee.activeXString) != 'string'){
+					var versions = ['MSXML2.XMLHttp.6.0','MSXML2.XMLHttp.3.0','MSXML2.XMLHttp'];
+					for (var i=0;i < versions.length;i++){
+						try{
+							new ActiveXObject(versions[i]);
+							arguments.callee.activeXString = versions[i];
+							break;
+						}catch(ex){}
+					}
 				}
-				result = result.substr(0,result.length - 1);
-				return result;
-			}else if (typeof(data) == 'string'){
-				return data;
+				return new ActiveXObject(arguments.callee.activeXString);
 			}else{
-				return null;
-			}
-		}
-
-		if (window.XMLHttpRequest){
-			var ajaxObject = new XMLHttpRequest();
-		}else{
-			var ajaxObject = new ActiveXObject('Microsoft.XMLHTTP');
-		}
-		ajaxObject.open(type,url,true);
-		if (type == 'post'){
-			ajaxObject.contentType = 'application/x-www-form-urlencoded';
-			ajaxObject.send(dataFormat(data));
-		}else{
-			ajaxObject.send(null);
-		}
-
-		ajaxObject.onreadystatechange = function(){
-			if (ajaxObject.readyState == 4 && ((ajaxObject.status >= 200 && ajaxObject.status < 300) || ajaxObject.status == 304)){
-				var result = null;
-				switch (dataType){
-					case 'text':
-						result = ajaxObject.responseText;
-						break;
-					case 'xml':
-						result = ajaxObject.responseXML;
-						break;
-					case 'json':
-					default:
-						result = ajaxObject.response ? JSON.parse(ajaxObject.response) : null;
-						break;
-				}
-				if (typeof(success) == 'function'){
-					success(result,url);
-				}
-			}else if (!((ajaxObject.status >= 200 && ajaxObject.status < 300) || ajaxObject.status == 304)){
-				console.warn('[Ajax request fail] url:' + url +'; readyState:' + ajaxObject.readyState + '; status:' + ajaxObject.status);
-				if (typeof(error) === 'function' && errorCallbackCount == 0){error(url);errorCallbackCount++;}
+				console.warn('[Ajax Request Fail] no XHR object available!');
 				return false;
 			}
+		},
+		dataFormat = function(data){
+			if (typeof(data) === 'object'){
+				var dataArray = [];
+				for (var key in data){
+					dataArray.push(encodeURIComponent(key) + '=' + encodeURIComponent(data[key]));
+				}
+				return dataArray.join('&');
+			}else{
+				return data;
+			}
+		},
+		addDataToParam = function(url,data){
+			url += (url.indexOf('?') > -1) ? '' : '?';
+			url += (url.substr(-1) == '&' || url.substr(-1) == '?') ? data : '&' + data;
+			return url;
+		}
+
+		var ajaxObject = createXHR();
+		requestData = dataFormat(data);
+		if (ajaxObject){
+			ajaxObject.onreadystatechange = function(){
+				//console.info('[Ajax request process] url:' + url +'; readyState:' + ajaxObject.readyState + '; status:' + ajaxObject.status);
+				if (ajaxObject.readyState == 4 && ((ajaxObject.status >= 200 && ajaxObject.status < 300) || ajaxObject.status == 304)){
+					var result = null;
+					switch (dataType){
+						case 'text':
+							result = ajaxObject.responseText;
+							break;
+						case 'xml':
+							result = ajaxObject.responseXML;
+							break;
+						case 'json':
+						default:
+							result = ajaxObject.response ? JSON.parse(ajaxObject.response) : null;
+							break;
+					}
+					if (typeof(success) == 'function'){
+						success(result,url);
+					}
+				}else if (ajaxObject.readyState > 1 && !((ajaxObject.status >= 200 && ajaxObject.status < 300) || ajaxObject.status == 304)){
+					console.warn('[Ajax request fail] url:' + url +'; readyState:' + ajaxObject.readyState + '; status:' + ajaxObject.status);
+					if (typeof(error) === 'function' && errorCallbackCount == 0){error(url);errorCallbackCount++;}
+					return false;
+				}
+			}
+			if (method === 'get'){
+				requestUrl = addDataToParam(url,data);
+			}
+			ajaxObject.open(method,requestUrl,sync);
+			//default headers
+			ajaxObject.setRequestHeader('X-Requested-With','XMLHttpRequest');
+			if (dataType){
+				switch (dataType){
+					case "text":
+						ajaxObject.setRequestHeader('Accept','text/plain');
+						break;
+					case "json":
+						ajaxObject.setRequestHeader('Accept','application/json');
+						break;
+					case "html":
+						ajaxObject.setRequestHeader('Accept','text/html');
+						break;
+					case "xml":
+						ajaxObject.setRequestHeader('Accept','application/xml, text/xml');
+						break;
+					default:
+						ajaxObject.setRequestHeader('Accept','*/*');
+						break;
+				}
+			}
+			if (method === 'post'){
+				ajaxObject.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
+			}
+			//modify headers
+			if (headers){
+				for (var headerName in headers){
+					ajaxObject.setRequestHeader(headerName,headers[headerName]);
+				}
+			}
+			ajaxObject.send(requestData);
+		}else{
+			return false;
 		}
 	}
 })($mx);
@@ -393,7 +445,8 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 	},
 	loadLibrary = function(libraryArray,callback){
 		for (var i = 0;i < libraryArray.length;i++){
-			loading.add('mxFrame_load_' + libraryArray[i]);
+			var xmlUrl = libraryArray[i];
+			loading.add('mxFrame_load_' + xmlUrl);
 			$mx.xml.loadInByURL(libraryArray[i],function(url){
 				loading.remove('mxFrame_load_' + url);
 			});
@@ -408,21 +461,9 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 			nextNode = element.nextElementSibling;
 		fragment.appendChild(element);
 		if (type){
-			loading.add('data loading');
-			initDataInHTML(element);
-			var dataLoading = $mx.signal('mxFrameData');
-			dataLoading.empty(function(){
-				loading.remove('data loading');
-				scanElement(element)
-			});
+			scanElement(element)
 		}else{
-			loading.add('data loading');
-			initDataInHTML(element);
-			var dataLoading = $mx.signal('mxFrameData');
-			dataLoading.empty(function(){
-				loading.remove('data loading');
-				scanChildNodes(element)
-			});
+			scanChildNodes(element)
 		}
 		var doOnshow = function(element){
 			if (element.event && element.event.onshow){
@@ -450,30 +491,18 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 		loading.empty(function(){
 			parentNode.insertBefore(fragment,nextNode);
 			doOnshow(element);
-		})
+		});
 	},
-	
-	initDataInHTML = function(element){
+	initDataInHTML = function(element,callback){
 		//if you want to scan and init all element with attribute "data".
 		/*if (element && element.nodeName.substr(0,1) != '#'){*/
-		var dataLoading = $mx.signal('mxFrameData');
+		var dataLoading = $mx.signal(['mxFrameData',element]);
 		if (element && (element.nodeName == 'ITEM' || (element.attributes && element.attributes['mx']))){
 			element.data = element.data ? element.data : {};
 			if (element.attributes['data']){
 				element.data = mergeObjects(element.data,getValueFromString(element.getAttribute('data')));
 				element.removeAttribute('data');
 			}
-			//I don't know why, this code goes cool when placed here
-			/*============================*/
-			dataLoading.empty(function(){
-				for (var key in element.data){
-					var matchChildNode = element.querySelector('[name="' + key + '"],[id="' + key + '"]');
-					if (matchChildNode){
-						matchChildNode.data = element.data[key];
-					}
-				}
-			});
-			/*============================*/
 			var dataUrl = element.attributes['data-url'] ? element.attributes['data-url'].value : null;
 			if (dataUrl){
 				var dataPosition = element.attributes['data-position'] ? element.attributes['data-position'].value : null,
@@ -503,9 +532,15 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 					},
 				})
 			}
-			//But goes wrong when placed here
-			/*============================*/
-			/*============================*/
+			dataLoading.empty(function(){
+				for (var key in element.data){
+					var matchChildNode = element.querySelector('[name="' + key + '"],[id="' + key + '"]');
+					if (matchChildNode){
+						matchChildNode.data = element.data[key];
+					}
+				}
+				if (typeof(callback) === 'function'){callback();}
+			});
 			if (element.attributes['event']){
 				element.event = mergeObjects(getValueFromString(element.getAttribute('event')),element.event);
 				element.removeAttribute('event');
@@ -532,7 +567,9 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 			setTimeout(function(){
 				//see who is rendered
 				//console.log(element);
-				renderElement(element);
+				initDataInHTML(element,function(){
+					renderElement(element);
+				});
 			});
 		}else{
 			scanChildNodes(element);
@@ -546,6 +583,7 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 		}
 	},
 	renderElement = function(element){
+		//console.log([element,element.data]);
 		//get basic info
 		var itemName = element.getAttribute('name');
 		if (!itemName){
@@ -553,14 +591,21 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 			scanChildNodes(element);
 			return false;
 		}
+		element.data.itemName = itemName;
 		var itemId = element.getAttribute('id');
 		if (!itemId){
 			itemId = itemName + '_' + idAutoCounter;
 			element.setAttribute('id',itemId);
 			idAutoCounter++;
 		}
+		element.data.itemId = itemId;
 		renderRecord.onRender.push(itemId);
-		addClass(element,itemName);
+		var itemClass = element.getAttribute('class');
+		if (!itemClass){
+			itemClass = itemName;
+			addClass(element,itemClass);
+		}
+		element.data.itemClass = itemClass;
 		
 		var template = $mx.xml.tag(itemName);
 		if (!template[0]){
