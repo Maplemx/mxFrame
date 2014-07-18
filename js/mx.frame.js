@@ -115,8 +115,10 @@ var $mx = $mx ? $mx : {};
 			}
 		},
 		addDataToParam = function(url,data){
-			url += (url.indexOf('?') > -1) ? '' : '?';
-			url += (url.substr(-1) == '&' || url.substr(-1) == '?') ? data : '&' + data;
+			if (data){
+				url += (url.indexOf('?') > -1) ? '' : '?';
+				url += (url.substr(-1) == '&' || url.substr(-1) == '?') ? data : '&' + data;
+			}
 			return url;
 		}
 
@@ -153,7 +155,7 @@ var $mx = $mx ? $mx : {};
 			}
 			ajaxObject.open(method,requestUrl,sync);
 			//default headers
-			ajaxObject.setRequestHeader('X-Requested-With','XMLHttpRequest');
+			//ajaxObject.setRequestHeader('X-Requested-With','XMLHttpRequest');
 			if (dataType){
 				switch (dataType){
 					case "text":
@@ -507,7 +509,8 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 			if (dataUrl){
 				var dataPosition = element.attributes['data-position'] ? element.attributes['data-position'].value : null,
 					dataMethod = element.attributes['data-method'] ? element.attributes['data-method'].value : null;
-					dataInput = element.attributes['data-input'] ? getValueFromString(element.attributes['data-input'].value) : null;
+					dataInput = element.attributes['data-input'] ? element.attributes['data-input'].value : null;
+				dataInput = (dataInput.indexOf('obj') === 0) ? getValueFromString(dataInput.substr(3)) : dataInput;
 				dataLoading.add(dataUrl);
 				$mx.ajax({
 					url: dataUrl,
