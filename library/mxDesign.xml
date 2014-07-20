@@ -1,0 +1,96 @@
+<mxDesign>
+	<mxPublic>
+		<css>
+			body{
+				font-size: 16px;
+				font-family: Arial,微软雅黑;
+			}
+		</css>
+	</mxPublic>
+	<mxMainFrame>
+		<css>
+			.{{itemClass}} .mxHeader{
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				display: block;
+				line-height: 4em;
+			}
+			.{{itemClass}} .mxContent{
+				position: fixed;
+				top: 5em;
+				left: 0;
+				width: 100%;
+				margin-bottom: 5em;
+				display: block;
+				overflow-x: auto;
+			}
+			.{{itemClass}} .mxTailer{
+				position: fixed;
+				bottom: 0;
+				left: 0;
+				width: 100%;
+				display: block;
+				line-height: 2em;
+				text-align: center;
+			}
+		</css>
+		<template>
+			<![CDATA[
+				<item name = "mxHeader">
+				</item>
+				<item name = "mxContent">
+					{{html}}
+				</item>
+				<item name = "mxTailer">
+				</item>
+			]]>
+		</template>
+		<mxHeader>
+			<css>
+				.{{itemClass}}{
+					border-bottom: 1px #000 solid;
+					box-shadow: 0px 1px 3px #333;
+					background: #333;
+					padding-left: 1em;
+					padding-right: 1em;
+				}
+			</css>
+			<template>
+				<![CDATA[
+					header
+				]]>
+			</template>
+		</mxHeader>
+		<mxContent>
+			<css>
+				.{{itemClass}}{
+					padding-left: 2em;
+					padding-right: 2em;
+				}
+			</css>
+			<template>
+				<![CDATA[
+					{{html}}
+				]]>
+			</template>
+		</mxContent>
+		<mxTailer>
+			<css>
+				.{{itemClass}}{
+					border-top: 1px #CCC dashed;
+					background: #DDD;
+					color: #999;
+					font-size: 80%;
+					text-shadow:0px 1px 1px #FFF;
+				}
+			</css>
+			<template>
+				<![CDATA[
+					· Powered By mxFrame v0.5.0 · {{html}}
+				]]>
+			</template>
+		</mxTailer>
+	</mxMainFrame>
+</mxDesign>
