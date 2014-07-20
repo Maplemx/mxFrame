@@ -3,11 +3,15 @@
 	<head>
 	</head>
 	<body>
-		<item mx name = "APIResultDisplay">
+		<item name = "mxPublic"></item>
+		<item name = "mxMainFrame">
+			<item mx name = "APIResultDisplay">
+			</item>
 		</item>
 	</body>
 	<script src = "js/mx.frame.js"></script>
 	<script src = "js/mx.selector.js"></script>
 	<script>
+		$mx.frame.configures.library.push('library/mxDesign.xml');
 	</script>
 </html>

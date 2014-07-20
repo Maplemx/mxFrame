@@ -6,6 +6,7 @@ var $mx = $mx ? $mx : {};
 (function($mx){
 	var tunnels = [];
 	var Signal = function(tunnelName){
+		tunnelName = tunnelName ? tunnelName : 'defaultTunnel';
 		tunnels[tunnelName] = tunnels[tunnelName] ? tunnels[tunnelName] : 
 		{
 			signals: [],
@@ -27,7 +28,6 @@ var $mx = $mx ? $mx : {};
 				}
 			}
 		};
-
 		this.name = tunnelName;
 		this.add = function(signal){
 			if (tunnels[tunnelName].signals.indexOf(signal) < 0){
@@ -36,8 +36,9 @@ var $mx = $mx ? $mx : {};
 			}
 		}
 		this.remove = function(signal){
-			if (tunnels[tunnelName].signals.indexOf(signal) > -1){
-				tunnels[tunnelName].signals.splice(signal,1);
+			var index = tunnels[tunnelName].signals.indexOf(signal)
+			if (index > -1){
+				tunnels[tunnelName].signals.splice(index,1);
 			}
 			tryEmpty();
 		}
@@ -259,11 +260,13 @@ $mx.xml = $mx.xml ? $mx.xml : {};
 			dataType: 'XML',
 			success: function(result,url){
 				if (result){
-					$x.loadInByObject(result);
+					$x.loadInByObject(result,function(){
+						callback(url);
+					});
 				}else{
 					console.error('[mxXMLReader]Can\'t read XML file, perhaps it does not follow XML standard: [' + url + '];');
-				}
-				if (typeof(callback) === 'function'){callback(url);}
+					if (typeof(callback) === 'function'){callback(url);}
+				}				
 			},
 			error: function(url){
 				if (typeof(errorCallback) === 'function'){errorCallback(url);}
@@ -625,7 +628,7 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 
 		//append CSS
 		if (renderRecord.css.indexOf(itemName) < 0 && template.child('css')[0]){
-			var CSSString =  replaceWithObject(template.child('css').text,element.data);
+			var CSSString = replaceWithObject(template.child('css').text,element.data);
 			publicCSSElement.innerHTML += CSSString;
 			renderRecord.css.push(itemName);
 		}
