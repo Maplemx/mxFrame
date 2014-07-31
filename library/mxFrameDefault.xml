@@ -10,6 +10,7 @@
 				background: #EEE;
 				box-shadow: 0px 1px 1px #AAA;
 				padding: 1em;
+				overflow: auto;
 			}
 		</css>
 		<template>
@@ -78,10 +79,11 @@
 			<template>
 				<![CDATA[
 					<form>
-						<p><label>API URL:</label><input type = "text" name = "apiurl" placeholder = "input API url in here"/></p>
+						<p><label>API URL:</label><input type = "text" name = "apiurl" placeholder = "input API url in here" /></p>
 						<p><label>DATA POSITION:</label><input type = "text" name = "dataposition" placeholder = "input where the main data part is in api result"/></p>
 						<p><label>REQUEST METHOD:</label><SELECT name = "method"><OPTION value = "GET">GET</OPTION><OPTION value = "POST">POST</OPTION></SELECT></p>
 						<p><label>DATA:</label><input type = "text" name = "data" placeholder = "input data object in here"/></p>
+						<p><label>HEADER:</label><input type = "text" name = "headers" placeholder = "input request headers object in here if needed"/></p>
 						<p><button>Submit</button></p>
 					</form>
 				]]>
@@ -96,16 +98,18 @@
 							var displayTable = $thisItem.parentNode.querySelector('[name="resultDisplayTable"]'),
 								dataUrl = $thisItem.querySelector('[name="apiurl"]').value,
 								dataPosition = $thisItem.querySelector('[name="dataposition"]').value,
-								method = $thisItem.querySelector('[name="method"]').value;
-								dataInput = $thisItem.querySelector('[name="data"]').value;
+								method = $thisItem.querySelector('[name="method"]').value,
+								dataInput = $thisItem.querySelector('[name="data"]').value,
+								dataHeaders = $thisItem.querySelector('[name="headers"]').value;
 							if (dataUrl){
 								displayTable.setAttribute('data-url',dataUrl);
 								displayTable.setAttribute('data','{url:"' + dataUrl + '"}');
 								displayTable.setAttribute('data-position',dataPosition);
 								displayTable.setAttribute('data-method',method);
 								displayTable.setAttribute('data-input',dataInput);
+								displayTable.setAttribute('data-headers',dataHeaders);
 								displayTable.data.buttonElement = $thisItem.querySelector('button');
-								$thisItem.querySelector('button').setAttribute('disabled','true');
+								//$thisItem.querySelector('button').setAttribute('disabled','true');
 								$mx.frame.render(displayTable);
 							}
 							event.preventDefault();
@@ -176,6 +180,7 @@
 							data = $data.api,
                             html = '<tr>',
                             colsCount = 0;
+                        if (typeof(data[0]) != 'object'){data = [data];}
                         for (var col in data[0]){
                             html += '<td class = "title">' + col + '</td>';
                             colsCount++;

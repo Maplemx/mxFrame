@@ -4,7 +4,15 @@
 	</head>
 	<body>
 		<item name = "mxPublic"></item>
-		<item name = "mxMainFrame">
+		<item name = "mxMainFrame" event = "{
+			mxHeader:{
+				mxNav:{
+					navClick: function(){
+						alert($this.getAttribute('value'));
+					}
+				},
+			},
+		}">
 			<item mx name = "APIResultDisplay">
 			</item>
 		</item>

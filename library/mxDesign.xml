@@ -8,6 +8,21 @@
 		</css>
 	</mxPublic>
 	<mxMainFrame>
+		<data>
+			{
+				mxHeader:{
+					mxLogo:{
+						text1: "MX",
+						text2: "FRAME",
+					},
+					mxNav:{
+						list:[
+							"INTRO",
+						],
+					},
+				},
+			}
+		</data>
 		<css>
 			.{{itemClass}} .mxHeader{
 				position: fixed;
@@ -19,12 +34,12 @@
 			}
 			.{{itemClass}} .mxContent{
 				position: fixed;
-				top: 5em;
+				top: 0;
 				left: 0;
 				width: 100%;
-				margin-bottom: 5em;
+				height: 100%;
 				display: block;
-				overflow-x: auto;
+				overflow: auto;
 			}
 			.{{itemClass}} .mxTailer{
 				position: fixed;
@@ -38,10 +53,10 @@
 		</css>
 		<template>
 			<![CDATA[
-				<item name = "mxHeader">
-				</item>
 				<item name = "mxContent">
 					{{html}}
+				</item>
+				<item name = "mxHeader">
 				</item>
 				<item name = "mxTailer">
 				</item>
@@ -53,26 +68,102 @@
 					border-bottom: 1px #000 solid;
 					box-shadow: 0px 1px 3px #333;
 					background: #333;
-					padding-left: 1em;
-					padding-right: 1em;
+					padding: 0 1em 0 1em;
 				}
 			</css>
+			<preload>
+				//console.log($data);
+			</preload>
 			<template>
 				<![CDATA[
-					header
+					<item name = "mxLogo">
+					</item>
+					<item name = "mxNav">
+					</item>
 				]]>
 			</template>
+			<mxLogo>
+				<css>
+					.{{itemClass}}{
+						font-size: 180%;
+						float: left;
+						display: inline-block;
+						font-family: impact;
+						margin-left: 0.25em;
+						margin-right: 1em;
+						font-weight: bold;
+					}
+				</css>
+				<template>
+					<![CDATA[
+						<span style = "color: #FF3333">{{text1}}</span><span style = "color: #DDD">{{text2}}</span>
+					]]>
+				</template>
+			</mxLogo>
+			<mxNav>
+				<css>
+					.{{itemClass}}{
+						display: inline-block;
+						float: left;
+						margin: 0;
+						padding: 0;
+					}
+					.{{itemClass}} ul{
+						list-style: none;
+						margin: 0;
+						padding: 0;
+					}
+					.{{itemClass}} ul li{
+						display: inline-block;
+						min-width: 60px;
+						color: #FFF;
+						text-align: center;
+						font-weight: bold;
+						padding: 0 0.5em 0 0.5em;
+					}
+					.{{itemClass}} ul li:hover{
+						background: #666;
+						cursor: pointer;
+					}
+				</css>
+				<eventHooks>
+					{
+						navClick:{
+							target: '#navList li',
+							event: 'click',
+							do: function(){
+								console.log($this.getAttribute('value'));
+							}
+						},
+					}
+				</eventHooks>
+				<preload>
+					<![CDATA[
+						var preloadHTML = '<ul id = "navList">';
+						for (var i = 0;i < $data.list.length;i++){
+							preloadHTML += '<li value = "' + $data.list[i] + '">' + $data.list[i] + '</li>';
+						}
+						preloadHTML += '</ul>';
+						$data.preloadHTML = preloadHTML;
+					]]>
+				</preload>
+				<template>
+					{{preloadHTML}}
+				</template>
+			</mxNav>
 		</mxHeader>
 		<mxContent>
 			<css>
-				.{{itemClass}}{
-					padding-left: 2em;
-					padding-right: 2em;
+				.{{itemClass}} .contentContainer{
+					margin: 5em 1% 2em 1%;
+					width: 98%;
 				}
 			</css>
 			<template>
 				<![CDATA[
-					{{html}}
+					<div class = "contentContainer">
+						{{html}}
+					</div>
 				]]>
 			</template>
 		</mxContent>
@@ -88,7 +179,7 @@
 			</css>
 			<template>
 				<![CDATA[
-					· Powered By mxFrame v0.5.0 · {{html}}
+					· Powered By mxFrame v0.5.1 · {{html}}
 				]]>
 			</template>
 		</mxTailer>

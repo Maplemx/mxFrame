@@ -1,3 +1,10 @@
+/**
+ * mxFrame v 0.5.1 Beta
+ * Make It Easy To Write Items For Everybody
+ * Author: maplemx
+ * Email: maplemx@gmail.com
+ */
+
 //"use strict"; 
 var $mx = $mx ? $mx : {};
 /**
@@ -142,7 +149,7 @@ var $mx = $mx ? $mx : {};
 							result = ajaxObject.response ? JSON.parse(ajaxObject.response) : null;
 							break;
 					}
-					if (typeof(success) == 'function'){
+					if (typeof(success) === 'function'){
 						success(result,url);
 					}
 				}else if (ajaxObject.readyState > 1 && !((ajaxObject.status >= 200 && ajaxObject.status < 300) || ajaxObject.status == 304)){
@@ -156,7 +163,7 @@ var $mx = $mx ? $mx : {};
 			}
 			ajaxObject.open(method,requestUrl,sync);
 			//default headers
-			//ajaxObject.setRequestHeader('X-Requested-With','XMLHttpRequest');
+			ajaxObject.setRequestHeader('X-Requested-With','XMLHttpRequest');
 			if (dataType){
 				switch (dataType){
 					case "text":
@@ -176,7 +183,7 @@ var $mx = $mx ? $mx : {};
 						break;
 				}
 			}
-			if (method === 'post'){
+			if (method === 'post' && !(headers && headers['Content-Type'])){
 				ajaxObject.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
 			}
 			//modify headers
@@ -283,7 +290,7 @@ $mx.xml = $mx.xml ? $mx.xml : {};
 var $x = $x ? $x : $mx.xml;
 
 /**
- * mxFrame v 0.5.0 Beta
+ * mxFrame v 0.5.1 Beta
  */
 $mx.frame = $mx.frame ? $mx.frame : {};
 (function($f){
@@ -291,7 +298,6 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 	$f.configures = {
 		autoStart: true,
 		library: ['library/mxFrameDefault.xml'],
-		debug: false,
 	}
 
 	//Private
@@ -305,7 +311,8 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 			callbackOnce: [],
 		},
 		loading = $mx.signal('mxFrame'),
-		frameStartStatus = false;
+		frameStartStatus = false,
+		mxFrameReadyFunction;
 	publicCSSElement.setAttribute('type','text/css');
 	document.getElementsByTagName('head')[0].appendChild(publicCSSElement);
 
@@ -413,7 +420,7 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 					result = result.replace(reg,object[property]);
 				}
 			}
-			if (result){result = result.replace(/\{\{.*\}\}/gm,'')};
+			if (result && !lastProperty){result = result.replace(/\{\{.*\}\}/gm,'');};
 			return result;
 		}else{
 			return false;
@@ -511,14 +518,16 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 			var dataUrl = element.attributes['data-url'] ? element.attributes['data-url'].value : null;
 			if (dataUrl){
 				var dataPosition = element.attributes['data-position'] ? element.attributes['data-position'].value : null,
-					dataMethod = element.attributes['data-method'] ? element.attributes['data-method'].value : null;
-					dataInput = element.attributes['data-input'] ? element.attributes['data-input'].value : null;
+					dataMethod = element.attributes['data-method'] ? element.attributes['data-method'].value : null,
+					dataInput = element.attributes['data-input'] ? element.attributes['data-input'].value : null,
+					dataHeaders = element.attributes['data-headers'] ? getValueFromString(element.attributes['data-headers'].value) : [],
+					dataType = element.attributes['data-type'] ? element.attributes['data-type'] : 'json';
 				dataInput = (dataInput.indexOf('obj') === 0) ? getValueFromString(dataInput.substr(3)) : dataInput;
 				dataLoading.add(dataUrl);
 				$mx.ajax({
 					url: dataUrl,
 					type: dataMethod,
-					dataType: 'json',
+					dataType: dataType,
 					data: dataInput,
 					success: function(result,url){
 						if (dataPosition){
@@ -536,6 +545,7 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 					error: function(url){
 						dataLoading.remove(url);
 					},
+					headers: dataHeaders,
 				})
 			}
 			dataLoading.empty(function(){
@@ -679,13 +689,28 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 									)['$data'];
 								};
 							})());
+							if (eventHooks[eventName].public){
+								window[eventName] = function(eventFunction){
+									return addEvent(targetItems[i],eventHooks[eventName].event,(function(){
+										return function(event){
+											element.data = sandboxJS({
+												$thisItem: element,
+												$this: this,
+												$data: element.data,
+											},
+											'(' + eventFunction.toString() + ')(event)'
+											)['$data'];
+										};
+									})());
+								}
+							}
 						}
 					}
 				}
 			}
-			if (eventHooks.oncreate){element.event.oncreate = eventHooks.oncreate.do;}
-			if (eventHooks.onshow){element.event.onshow = eventHooks.onshow.do;}
-			if (eventHooks.onhide){element.event.onhide = eventHooks.onhide.do;}
+			if (eventHooks.oncreate && !element.event.oncreate){element.event.oncreate = eventHooks.oncreate.do;}
+			if (eventHooks.onshow && !element.event.onshow){element.event.onshow = eventHooks.onshow.do;}
+			if (eventHooks.onhide && !element.event.onhide){element.event.onhide = eventHooks.onhide.do;}
 		}
 
 		//create methods
@@ -701,7 +726,6 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 				}
 			}
 			element.hide = function(){
-				console.log(this);
 				if (this.style.display != 'none'){
 					this.style.display = 'none';
 					if (this.event && this.event.onhide){
@@ -759,8 +783,10 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 		}
 
 		//finish
-		loading.remove(element);
-		scanChildNodes(element);
+		initDataInHTML(element,function(){
+			loading.remove(element);
+			scanChildNodes(element);
+		});
 	};
 
 	//Public
@@ -777,6 +803,9 @@ $mx.frame = $mx.frame ? $mx.frame : {};
 		}else{
 			initFrame(element,false);
 		}
+	}
+	$f.ready = function(readyFunction){
+		mxFrameReadyFunction = readyFunction;
 	}
 	//Auto Start
 	setTimeout(function(){
