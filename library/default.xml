@@ -190,10 +190,23 @@
 					font-size: 80%;
 					text-shadow:0px 1px 1px #FFF;
 				}
+				.{{templateName}} a{
+					color: #999;
+					text-decoration: none;
+				}
+				.{{templateName}} a:hover{
+					color: #AAA;
+				}
 			</css>
+			<preload>
+				<![CDATA[
+					$data.frameUrl = $mx.info.url;
+					$data.frameVersion = $mx.info.version;
+				]]>
+			</preload>
 			<html>
 				<![CDATA[
-					· Powered By mxFrame v0.5.1 · {{html}}
+					· Powered By <a href = "{{frameUrl}}">mxFrame {{frameVersion}}</a> · {{html}}
 				]]>
 			</html>
 		</mxTailer>
