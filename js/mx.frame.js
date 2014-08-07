@@ -1,82 +1,209 @@
-/**
- * mxFrame v 0.5.1 Beta
- * Make It Easy To Write Items For Everybody
- * Author: maplemx
- * Email: maplemx@gmail.com
+/***
+ * mxFrame v 0.6.0
+ * Author: Maplemx
+ * Email: Maplemx@gmail.com
+ * I hope this is the final beta version!!!
  */
 
-//"use strict"; 
-var $mx = $mx ? $mx : {};
-/**
- * mxSignal v 0.3.0 Beta
- */
+var mxFrame = mxFrame ? mxFrame : {};
 (function($mx){
-	var tunnels = [];
-	var Signal = function(tunnelName){
-		tunnelName = tunnelName ? tunnelName : 'defaultTunnel';
-		tunnels[tunnelName] = tunnels[tunnelName] ? tunnels[tunnelName] : 
-		{
-			signals: [],
-			lines: [],
-			empty: [],
-		};
+	"use strict";
+	$mx.cache = {};
 
-		var trySignal = function(signal){
-			var index = tunnels[tunnelName].signals.indexOf(signal);
-			if (index > -1 && tunnels[tunnelName].lines[signal]){
-				tunnels[tunnelName].lines[signal]();
-				tunnels[tunnelName].signals.splice(index,1);
+	var mergeObjects = function(firstObject,secondObject){
+			var result = firstObject;
+			if (!result){return secondObject;}
+			for (var key in secondObject){
+				result[key] = secondObject[key];
 			}
+			return result;		
 		},
-		tryEmpty = function(){
-			if (tunnels[tunnelName].signals.length == 0){
-				for (var i = 0;i < tunnels[tunnelName].empty.length;i++){
-					tunnels[tunnelName].empty.splice(i,1)[0]();
+		getValueFromObjectByPosition = function(originObject,positionString){
+			var positionArray = positionString.split('.'),
+				result = originObject;
+			for (var i = 0;i < positionArray.length;i++){
+				if (result[positionArray[i]]){
+					result = result[positionArray[i]];
+				}else{
+					console.warn('[mxFrame]Get "' + positionString + '" value from object fail, please check if position attribute exsit:');
+					console.log(originObject);
+					return false;
 				}
 			}
+			return result;
 		};
-		this.name = tunnelName;
+
+	/***
+	 * mxFrame Configures
+	 */
+	$mx.configures = mergeObjects({
+		debug: false,
+		autoStartRender: true,
+		itemLibrary: ['library/default.xml'],
+		renderMark:{
+			tags: ['item'],
+			attributes: ['mx'],
+		},
+		templateNameAttribute: 'name',
+	},$mx.configures);
+	$mx.info = {
+		version: 'v 0.6.0',
+		author: 'Maplemx',
+		email: 'Maplemx@gmail.com',
+		url: "https://github.com/maplemx/mxFrame"
+	}
+
+	/***
+	 * mxSignal: thread controller using signal
+	 */
+	var mxFrameThreads = {};
+	var MxSignal = function(threadName){
+		this.name = threadName;
+		var threadInfo = mxFrameThreads[threadName] = mxFrameThreads[threadName] ? mxFrameThreads[threadName] : 
+			{
+				signals: [],
+				waits: {},
+				empty: [],
+			};
+
+		var addSignal = function(signal){
+				if (threadInfo.signals.indexOf(signal) == -1){
+					threadInfo.signals.push(signal);
+				}
+			},
+			removeSignal = function(signal){
+				var index = threadInfo.signals.indexOf(signal);
+				if (index > -1){
+					threadInfo.signals.splice(index,1);
+				}
+			},
+			addWait = function(signal,execFunc){
+				var waitFuncs = threadInfo.waits[signal] = threadInfo.waits[signal] ? threadInfo.waits[signal] : [];
+				if (waitFuncs.indexOf(execFunc) == -1){
+					waitFuncs.push(execFunc);
+				}
+			},
+			removeWait = function(signal,execFunc){
+				var waitFuncs = threadInfo.waits[signal] = threadInfo.waits[signal] ? threadInfo.waits[signal] : [],
+					index = waitFuncs.indexOf(execFunc);
+				if (index > -1){
+					waitFuncs.splice(index,1);
+				}
+			},
+			addEmpty = function(execFunc){
+				if (threadInfo.empty.indexOf(execFunc) == -1){
+					threadInfo.empty.push(execFunc);
+				}
+			},
+			removeEmpty = function(execFunc){
+				var index = threadInfo.empty.indexOf(execFunc);
+				if (index > -1){
+					threadInfo.empty.splice(index,1);
+				}
+			},
+			tryEmpty = function(){
+				if (threadInfo.signals.length == 0){
+					for (var i = 0,len = threadInfo.empty.length;i < len;i++){
+						threadInfo.empty.splice(i,1)[0]();
+						i--;
+						len--;
+					}
+				}
+			},
+			trySignal = function(signal,removeSignalWhenActived){
+				removeSignalWhenActived = removeSignalWhenActived ? removeSignalWhenActived : false;
+				if (threadInfo.signals.length > 0){
+					if (signal){
+						if (threadInfo.signals.indexOf(signal) > -1 && threadInfo.waits[signal]){
+							for (var i = 0,len = threadInfo.waits[signal].length;i < len;i++){
+								threadInfo.waits[signal].splice(i,1)[0]();
+								i--;
+								len--;
+								if (removeSignalWhenActived){
+									removeSignal(signal);
+								}
+							}
+						}
+					}else{
+						for (var waitSignal in threadInfo.waits){
+							var index = threadInfo.signals.indexOf(waitSignal);
+							if (index > -1){
+								for (var i = 0,len = threadInfo.waits[waitSignal].length; i < len;i++){
+									threadInfo.waits[waitSignal].splice(i,1)[0]();
+									i--;
+									len--;
+									if (removeSignalWhenActived){
+										removeSignal(waitSignal);
+									}
+								}
+							}
+						}
+					}
+				}
+			};
+
 		this.add = function(signal){
-			if (tunnels[tunnelName].signals.indexOf(signal) < 0){
-				tunnels[tunnelName].signals.push(signal);
-				trySignal(signal);
-			}
-		}
-		this.remove = function(signal){
-			var index = tunnels[tunnelName].signals.indexOf(signal)
-			if (index > -1){
-				tunnels[tunnelName].signals.splice(index,1);
-			}
-			tryEmpty();
-		}
-		this.count = tunnels[tunnelName].signals.length;
-		this.when = function(signal,func){
-			tunnels[tunnelName].lines[signal] = func;
+			addSignal(signal);
 			trySignal(signal);
 		}
-		this.empty = function(func){
-			if (tunnels[tunnelName].empty.indexOf(func) < 0){
-				tunnels[tunnelName].empty.push(func);
-			}
+		this.remove = function(signal){
+			removeSignal(signal);
 			tryEmpty();
 		}
-		this.debug = function(){
-			return tunnels;
+		this.when = function(signal,execFunc){
+			addWait(signal,execFunc);
+			trySignal(signal);
 		}
+		this.cancelWhen = function(signal,execFunc){
+			removeWait(signal,execFunc);
+		}
+		this.empty = function(execFunc){
+			addEmpty(execFunc);
+			tryEmpty();
+		}
+		this.cancelEmpty = function(execFunc){
+			removeEmpty(execFunc);
+		}
+		this.flash = function(signal){
+			trySignal(signal);
+		}
+		this.selfScan = function(){
+			trySignal();
+		}
+		this.have = function(signal){
+			return (threadInfo.signals.indexOf(signal) > -1);
+		}
+		this.isEmpty = function(){
+			return (threadInfo.singals.length == 0);
+		},
+		this.threadInfo = threadInfo;
+
 		return this;
 	}
-
-	$mx.signal = function(tunnelName){
-		return new Signal(tunnelName);
+	$mx.signal = function(threadName){
+		return new MxSignal(threadName);
 	}
-})($mx);
 
-/**
- * mxAjax v 0.2.0 Beta
- */
-var $mx = $mx ? $mx : {};
-(function($mx){
-	$mx.ajax = function(ajaxArguments){
+	/***
+	 * mxAjax: ajax requester
+	 */
+	/*Require this function:
+	getValueFromObjectByPosition = function(originObject,positionString){
+			var positionArray = positionString.split('.'),
+				result = originObject;
+			for (var i = 0;i < positionArray.length;i++){
+				if (result[positionArray[i]]){
+					result = result[positionArray[i]];
+				}else{
+					console.warn('[mxFrame]Get "' + positionString + '" value from object fail, please check if position attribute exsit:');
+					console.log(originObject);
+					return false;
+				}
+			}
+			return result;
+		};
+	*/
+	var ajaxRequest = function(ajaxArguments){
 		if (!ajaxArguments){console.warn('[Ajax request fail] no ajax argument object!');return false;}
 		var url = ajaxArguments.url,
 			method = ajaxArguments.method ? ajaxArguments.method.toLowerCase() : (ajaxArguments.type ? ajaxArguments.type.toLowerCase() : 'get'),
@@ -85,11 +212,13 @@ var $mx = $mx ? $mx : {};
 			headers = (typeof(ajaxArguments.headers) === 'object') ? ajaxArguments.headers : null,
 			success = (typeof(ajaxArguments.success) === 'function') ? ajaxArguments.success : null,
 			error = (typeof(ajaxArguments.error) === 'function') ? ajaxArguments.error : null,
-			sync = ajaxArguments.sync ? (typeof(ajaxArguments.sync) === 'boolean' ? ajaxArguments.sync : true) : true,
+			async = typeof(ajaxArguments.async) === 'boolean' ? ajaxArguments.async : true,
+			position = ajaxArguments.position ? ajaxArguments.position : null,
 			errorCallbackCount = 0,
 			requestUrl = url,
 			requestData;
 		if (!url){console.warn('[Ajax request fail] url is empty!');return false;}
+		if ($mx.configures.debug){console.info('[Ajax request process]request start: ' + url);}
 
 		var createXHR = function(){
 			if (window.XMLHttpRequest){
@@ -128,42 +257,48 @@ var $mx = $mx ? $mx : {};
 				url += (url.substr(-1) == '&' || url.substr(-1) == '?') ? data : '&' + data;
 			}
 			return url;
-		}
+		},
+		handleResult = function(){
+			if ($mx.configures.debug){
+				console.info('[Ajax request process] url:' + url +'; readyState:' + ajaxObject.readyState + '; status:' + ajaxObject.status);
+			}
+			if (ajaxObject.readyState == 4 && ((ajaxObject.status >= 200 && ajaxObject.status < 300) || ajaxObject.status == 304)){
+				var result = null;
+				switch (dataType){
+					case 'text':
+						result = ajaxObject.responseText;
+						break;
+					case 'xml':
+						result = ajaxObject.responseXML ? (position ? ajaxObject.responseXML.getElementsByTagName(position) : ajaxObject.responseXML) : null;
+						break;
+					case 'json':
+					default:
+						result = ajaxObject.response ? (position ? getValueFromObjectByPosition(JSON.parse(ajaxObject.response),position) : JSON.parse(ajaxObject.response)) : null;
+						break;
+				}
+				if (typeof(success) == 'function'){
+					success(result,url);
+				}
+			}else if (ajaxObject.readyState > 1 && !((ajaxObject.status >= 200 && ajaxObject.status < 300) || ajaxObject.status == 304)){
+				console.warn('[Ajax request fail] url:' + url +'; readyState:' + ajaxObject.readyState + '; status:' + ajaxObject.status);
+				if (typeof(error) === 'function' && errorCallbackCount == 0){error(url);errorCallbackCount++;}
+			}
+		};
 
 		var ajaxObject = createXHR();
 		requestData = dataFormat(data);
 		if (ajaxObject){
-			ajaxObject.onreadystatechange = function(){
-				//console.info('[Ajax request process] url:' + url +'; readyState:' + ajaxObject.readyState + '; status:' + ajaxObject.status);
-				if (ajaxObject.readyState == 4 && ((ajaxObject.status >= 200 && ajaxObject.status < 300) || ajaxObject.status == 304)){
-					var result = null;
-					switch (dataType){
-						case 'text':
-							result = ajaxObject.responseText;
-							break;
-						case 'xml':
-							result = ajaxObject.responseXML;
-							break;
-						case 'json':
-						default:
-							result = ajaxObject.response ? JSON.parse(ajaxObject.response) : null;
-							break;
-					}
-					if (typeof(success) === 'function'){
-						success(result,url);
-					}
-				}else if (ajaxObject.readyState > 1 && !((ajaxObject.status >= 200 && ajaxObject.status < 300) || ajaxObject.status == 304)){
-					console.warn('[Ajax request fail] url:' + url +'; readyState:' + ajaxObject.readyState + '; status:' + ajaxObject.status);
-					if (typeof(error) === 'function' && errorCallbackCount == 0){error(url);errorCallbackCount++;}
-					return false;
+			if (async){
+				ajaxObject.onreadystatechange = function(){
+					handleResult();
 				}
 			}
 			if (method === 'get'){
 				requestUrl = addDataToParam(url,data);
 			}
-			ajaxObject.open(method,requestUrl,sync);
+			ajaxObject.open(method,requestUrl,async);
 			//default headers
-			ajaxObject.setRequestHeader('X-Requested-With','XMLHttpRequest');
+			//ajaxObject.setRequestHeader('X-Requested-With','XMLHttpRequest');
 			if (dataType){
 				switch (dataType){
 					case "text":
@@ -193,625 +328,821 @@ var $mx = $mx ? $mx : {};
 				}
 			}
 			ajaxObject.send(requestData);
+			if (!async){
+				handleResult();
+			}
 		}else{
 			return false;
-		}
-	}
-})($mx);
-
-/**
- * mxXMLReader v 0.1.3 Beta
- */
-//REQUIRE:mxAjax
-$mx.xml = $mx.xml ? $mx.xml : {};
-(function($x){
-	//Private Methods
-	var mergeXMLObjects = function(firstObject,secondObject){
-		var resultObject = firstObject;
-		if (typeof(resultObject) === 'undefined'){
-			resultObject = secondObject;
-		}else{
-			while (secondObject.documentElement.hasChildNodes()){
-				resultObject.documentElement.appendChild(secondObject.documentElement.childNodes[0]);
-			}
-		}
-		return resultObject;
-	}
-
-	//Class Model
-	var Tag = function(tagName,orderNum,lastTarget,onlyChild){
-		orderNum = orderNum ? orderNum : 0;
-		onlyChild = onlyChild ? onlyChild : false;
-		lastTarget = lastTarget ? lastTarget : $x.content;
-		if (onlyChild){
-			var childNodes = lastTarget.childNodes,
-				childCount = 0;
-			for (var i = 0;i < childNodes.length;i++){
-				if (childNodes[i].tagName == tagName || childNodes[i].tagName == tagName.toUpperCase()){
-					if (childCount == orderNum){
-						this[0] = childNodes[i];
-						break;
-					}else{
-						childCount++;
-					}
-				}
-			}
-		}else{
-			this[0] = lastTarget ? lastTarget.getElementsByTagName(tagName)[orderNum] : undefined;
-		}
-		this.tag = function(tagName,orderNum){
-			return new Tag(tagName,orderNum,this[0],false);
-		};
-		this.child = function(tagName,orderNum){
-			return new Tag(tagName,orderNum,this[0],true);
-		}
-		if (this[0] && this[0].childNodes.length > 0){
-			this.text = this[0].textContent;
-			this.html = this[0].innerHTML;
-		}else{
-			this.text = undefined;
-			this.html = undefined;
-		}
-	}
-	//Public Atrributes
-	$x.content = undefined;
-
-	//Publice Methods
-	$x.loadInByObject = function(xmlObject,callback){
-		$x.content = mergeXMLObjects($x.content,xmlObject);
-		if (typeof(callback) === 'function'){callback();}
-	}
-	$x.loadInByURL = function(url,callback,errorCallback){
-		$mx.ajax({
-			url: url,
-			dataType: 'XML',
-			success: function(result,url){
-				if (result){
-					$x.loadInByObject(result,function(){
-						callback(url);
-					});
-				}else{
-					console.error('[mxXMLReader]Can\'t read XML file, perhaps it does not follow XML standard: [' + url + '];');
-					if (typeof(callback) === 'function'){callback(url);}
-				}				
-			},
-			error: function(url){
-				if (typeof(errorCallback) === 'function'){errorCallback(url);}
-			}
-		});	
-	}
-	$x.tag = function(tagName,orderNum){
-		return new Tag(tagName,orderNum,$x.content,false);
-	}
-	$x.child = function(tagName,orderNum){
-		return new Tag(tagName,orderNum,$x.content,true);
-	}
-})($mx.xml);
-var $x = $x ? $x : $mx.xml;
-
-/**
- * mxFrame v 0.5.1 Beta
- */
-$mx.frame = $mx.frame ? $mx.frame : {};
-(function($f){
-	//Default Configures
-	$f.configures = {
-		autoStart: true,
-		library: ['library/mxFrameDefault.xml'],
-	}
-
-	//Private
-	var publicCSSElement = document.createElement('style'),
-		idAutoCounter = 0,
-		sanboxTempVarCounter = 0,
-		renderRecord = {
-			onRender: [],
-			css: [],
-			preloadOnce: [],
-			callbackOnce: [],
-		},
-		loading = $mx.signal('mxFrame'),
-		frameStartStatus = false,
-		mxFrameReadyFunction;
-	publicCSSElement.setAttribute('type','text/css');
-	document.getElementsByTagName('head')[0].appendChild(publicCSSElement);
-
-	var	runJS = function(JSString){
-		var script = document.createElement('script');
-		//see what code was run
-		if ($f.configures.debug){console.log(JSString);}
-		script.innerHTML = JSString;
-		document.querySelector('html').appendChild(script);
-		script.remove();
-	},
-	getValueFromString = function(JSString){
-		if (JSString.replace(/(\t|\s|\r|\n)/gm,'')){
-			runJS('var __mxFrameTemp__ = ' + JSString);
-			var result = __mxFrameTemp__;
-			__mxFrameTemp__ = null;
-			return result;
-		}else{
-			return '';
-		}
-	},
-	sandboxJS = function(sandboxData,JSString){
-		var nowCounter = sanboxTempVarCounter;
-		sanboxTempVarCounter++;
-		window.__mxFrameSandboxTempData__ = window.__mxFrameSandboxTempData__ ? window.__mxFrameSandboxTempData__ : [];
-		window.__mxFrameSandboxTempData__[nowCounter] = sandboxData;
-		var fullJSString = 'var ';
-		for (var key in sandboxData){
-			fullJSString += key + '=window.__mxFrameSandboxTempData__[' + nowCounter + ']["' + key + '"],'
-		}
-		fullJSString = fullJSString.substr(0,fullJSString.length - 1) + ';';
-		fullJSString += JSString;
-		runJS(fullJSString);
-		for (var key in sandboxData){
-			sandboxData[key] = window.__mxFrameSandboxTempData__[nowCounter][key];
-		}
-		window.__mxFrameSandboxTempData__[nowCounter] = null;
-		return sandboxData;
-	},
-	createMethodInSandbox = function(sandboxData,element,methodName,methodFunction){
-		var nowCounter = sanboxTempVarCounter;
-		sanboxTempVarCounter++;
-		window.__mxFrameSandboxTempData__ = window.__mxFrameSandboxTempData__ ? window.__mxFrameSandboxTempData__ : [];
-		window.__mxFrameSandboxTempData__[nowCounter] = sandboxData;
-		var fullJSString = 'var __mxFrameTemp__ = (function(){';
-		for (var key in sandboxData){
-			fullJSString += key + '=window.__mxFrameSandboxTempData__[' + nowCounter + ']["' + key + '"],'
-		}
-		fullJSString = fullJSString.substr(0,fullJSString.length - 1) + ';';
-		fullJSString += 'return ' + methodFunction.toString() + '})();';
-		runJS(fullJSString);
-		var result = __mxFrameTemp__;
-		__mxFrameTemp__ = null;
-		element[methodName] = result;
-		for (var key in sandboxData){
-			sandboxData[key] = window.__mxFrameSandboxTempData__[nowCounter][key];
-		}
-		window.__mxFrameSandboxTempData__[nowCounter] = null;
-		return sandboxData;
-	},
-	mergeObjects = function(firstObject,secondObject){
-		var result = firstObject;
-		if (!result){return secondObject;}
-		for (var key in secondObject){
-			result[key] = secondObject[key];
-		}
-		return result;
-	},
-	getClassArray = function(element){
-		return element.className ? element.className.split(' ') : [];
-	},
-	addClass = function(element,className){
-		var classArray = getClassArray(element);
-		if (classArray.indexOf(className) < 0){
-			classArray.push(className);
-			element.className = classArray.join(' ');
-		}
-	},
-	removeClass = function(element,className){
-		var classArray = getClassArray(element),
-			i = classArray.indexOf(className);		
-		if (i > -1){
-			classArray.splice(i,1);
-			element.className = classArray.join(' ');
-			if (!element.className){
-				element.removeAttribute('class');
-			}
-		}
-	},
-	replaceWithObject = function(text,object,lastProperty){
-		var result = text,
-			fullProperty = '';
-		if (result){
-			for (var property in object){
-				if (typeof(lastProperty) === 'undefined'){
-					fullProperty = property;
-				}else{
-					fullProperty = lastProperty + '.' + property;
-				}
-				//make sure content is not a HTML element
-				if (typeof(object[property]) === 'object' && !(object[property] && object[property].nodeName)){
-					result = replaceWithObject(result,object[property],fullProperty);
-				}else{
-					var reg = new RegExp('\\\{\\\{' + fullProperty + '\\\}\\\}','gm');
-					result = result.replace(reg,object[property]);
-				}
-			}
-			if (result && !lastProperty){result = result.replace(/\{\{.*\}\}/gm,'');};
-			return result;
-		}else{
-			return false;
-		}
-	},
-	addEvent = function(element,event,handlerFunction){
-		if (element.addEventListener){
-			element.addEventListener(event,handlerFunction,false);
-		}else if (element.attachEvent){
-			element.attachEvent('on' + event,handlerFunction);
-		}else{
-			element['on' + event] = handlerFunction;
-		}
-	},
-	removeEvent = function(element,event,handlerFunction){
-		if (element.removeEventListner){
-			element.removeEventListener(event,handlerFunction,false);
-		}else if (element.datachEvent){
-			element.detachEvent('on' + event,handlerFunction);
-		}else{
-			element['on' + event] = null;
 		}
 	};
+	$mx.ajax = function(ajaxArguments){
+		ajaxRequest(ajaxArguments);
+	}
+	
 
-	var	initFrame = function(element,type){
-		if (!element && !element.nodeName){
-			console.log('[mxFrame]Input argument is not a HTML element.');
-			return false;
-		}
-		loadLibrary($f.configures.library,function(){
-			frameStartStatus = true;
-			startRender(element,type);
-		});
-	},
-	loadLibrary = function(libraryArray,callback){
-		for (var i = 0;i < libraryArray.length;i++){
-			var xmlUrl = libraryArray[i];
-			loading.add('mxFrame_load_' + xmlUrl);
-			$mx.xml.loadInByURL(libraryArray[i],function(url){
-				loading.remove('mxFrame_load_' + url);
+	/***
+	 * mxXMLReader: XML file load in, multiple files merge and node quick fetch
+	 **/
+	var MxXML = function(groupName){
+		//Create default XML content
+		if (!document.all){
+			XMLDocument.prototype.__defineGetter__('xml',function(){
+				return new XMLSerializer().serializeToString(this);
 			});
 		}
-		if (typeof(callback) === 'function'){
-			loading.empty(callback);
-		}
-	},
-	startRender = function(element,type){
-		var fragment = document.createDocumentFragment(),
-			parentNode = element.parentNode,
-			nextNode = element.nextElementSibling;
-		fragment.appendChild(element);
-		if (type){
-			scanElement(element)
-		}else{
-			scanChildNodes(element)
-		}
-		var doOnshow = function(element){
-			if (element.event && element.event.onshow){
-				var $this = element,
-					$data = element.data;
-				element.event.onshow();
-			}
-			for (var i = 0;i < (element.childNodes ? element.childNodes.length : 0);i++){
-				doOnshow(element.childNodes[i]);
-			} 
-		};
-		/*checkAndFillBackFromFragment = function(element){
-			if (renderRecord.onRender.length < 1){
-				parentNode.insertBefore(fragment,nextNode);
-				doOnshow(element);
+		var createXML = function(defaultContent){
+			if (document.all){
+				var result = new ActiveXObject('Microsoft.XMLDOM');
+				result.loadXML(defaultContent);
+				return result;
 			}else{
-				setTimeout(function(){checkAndFillBackFromFragment(element);
-				},50);
+				return new DOMParser().parseFromString(defaultContent,"text/xml");
 			}
-		}
-		setTimeout(function(){
-			checkAndFillBackFromFragment(element);
-		},100);
-		*/
-		loading.empty(function(){
-			parentNode.insertBefore(fragment,nextNode);
-			doOnshow(element);
-		});
-	},
-	initDataInHTML = function(element,callback){
-		//if you want to scan and init all element with attribute "data".
-		/*if (element && element.nodeName.substr(0,1) != '#'){*/
-		var dataLoading = $mx.signal(['mxFrameData',element]);
-		if (element && (element.nodeName == 'ITEM' || (element.attributes && element.attributes['mx']))){
-			element.data = element.data ? element.data : {};
-			if (element.attributes['data']){
-				element.data = mergeObjects(element.data,getValueFromString(element.getAttribute('data')));
-				element.removeAttribute('data');
-			}
-			var dataUrl = element.attributes['data-url'] ? element.attributes['data-url'].value : null;
-			if (dataUrl){
-				var dataPosition = element.attributes['data-position'] ? element.attributes['data-position'].value : null,
-					dataMethod = element.attributes['data-method'] ? element.attributes['data-method'].value : null,
-					dataInput = element.attributes['data-input'] ? element.attributes['data-input'].value : null,
-					dataHeaders = element.attributes['data-headers'] ? getValueFromString(element.attributes['data-headers'].value) : [],
-					dataType = element.attributes['data-type'] ? element.attributes['data-type'] : 'json';
-				dataInput = (dataInput.indexOf('obj') === 0) ? getValueFromString(dataInput.substr(3)) : dataInput;
-				dataLoading.add(dataUrl);
-				$mx.ajax({
-					url: dataUrl,
-					type: dataMethod,
-					dataType: dataType,
-					data: dataInput,
-					success: function(result,url){
-						if (dataPosition){
-							var dataPositionArray = dataPosition.split('.'),
-								data = result;
-							for (var i = 0;i < dataPositionArray.length;i++){
-								data = data[dataPositionArray[i]];
-							}
-							element.data.api = data;
-						}else{
-							element.data.api = result;
-						}
-						dataLoading.remove(url);
-					},
-					error: function(url){
-						dataLoading.remove(url);
-					},
-					headers: dataHeaders,
-				})
-			}
-			dataLoading.empty(function(){
-				for (var key in element.data){
-					var matchChildNode = element.querySelector('[name="' + key + '"],[id="' + key + '"]');
-					if (matchChildNode){
-						matchChildNode.data = element.data[key];
+		};
+		var xmlContent = createXML('<mxFrameItemLibrary></mxFrameItemLibrary>');
+
+		var xmlLoadInByObject = function(xmlObject,callback){
+				if (xmlContent){
+					var resultObject = xmlContent;
+					while (xmlObject.documentElement.hasChildNodes()){
+						resultObject.documentElement.appendChild(xmlObject.documentElement.childNodes[0]);
+					}
+					xmlContent = resultObject;
+					if (typeof(callback) === 'function'){
+						callback();
+					}
+				}else{
+					xmlContent = xmlObject;
+					if (typeof(callback) === 'function'){
+						callback();
 					}
 				}
-				if (typeof(callback) === 'function'){callback();}
-			});
-			if (element.attributes['event']){
-				element.event = mergeObjects(getValueFromString(element.getAttribute('event')),element.event);
-				element.removeAttribute('event');
+			},
+			xmlLoadInByUrl = function(url,callback,errorCallback){
+				ajaxRequest({
+					url: url,
+					dataType: 'XML',
+					success: function(result,url){
+						if (result){
+							xmlLoadInByObject(result,function(){
+								if ($mx.configures.debug){
+									console.info('[XML load in success] ' + url);
+								}
+								if (typeof(callback) === 'function'){
+									callback(url);
+								}
+							});
+						}else{
+							console.warn('[XML load in fail]Can\'t read XML file or XML file does not follow XML standard: ' + url);
+						}
+					},
+					error: function(url){
+						console.warn('[XML load in fail]Can\'t load XML file: ' + url);
+						if (typeof(errorCallback) === 'function'){
+							errorCallback(url);
+						}
+					},
+				});
+			};
+
+		var XMLNode = function(nodeName,nodeNumber,parentNode,onlyChildNodes){
+				parentNode = parentNode ? parentNode : xmlContent;
+				nodeNumber = nodeNumber ? nodeNumber : 0;
+				onlyChildNodes = onlyChildNodes ? onlyChildNodes : false;
+				this.content = undefined;
+				if (!xmlContent){
+					console.warn('[Empty XML content]No content in XMLReader now!');
+					return false;
+				}
+				if (!nodeName){
+					this.content = xmlContent;
+				}else if (onlyChildNodes){
+					var childNodes = parentNode.childNodes,
+						childCount = 0;
+					for (var i = 0;i < childNodes.length;i++){
+						if (childNodes[i].tagName && childNodes[i].tagName.toLowerCase() == nodeName.toLowerCase()){
+							if (childCount == nodeNumber){
+								this.content = childNodes[i];
+								break;
+							}else{
+								childCount++;
+							}
+						}
+					}
+				}else{
+					this.content = parentNode.getElementsByTagName(nodeName)[nodeNumber];
+				}
+
+				if (this.content){
+					this.tag = function(nodeName,nodeNumber){
+						return new XMLNode(nodeName,nodeNumber,this.content,false);
+					}
+					this.child = function(nodeName,nodeNumber){
+						return new XMLNode(nodeName,nodeNumber,this.content,true);
+					}
+					this.text = this.content.textContent;
+					this.html = this.content.innerHTML;
+				}else{
+					if ($mx.configures.debug){
+						console.info('[no XML node]"' + nodeName + '" node can not be found in this node: "' + parentNode.nodeName + '"');
+					}
+				}
+
+				return this;
+			};
+
+		this.name = groupName;
+		this.getContent = function(){
+			return xmlContent;
+		}
+		this.load = function(url,callback,errorCallback){
+			xmlLoadInByUrl(url,callback,errorCallback);
+		}
+		this.addXML = function(xmlObject,callback){
+			xmlLoadInByObject(xmlObject,callback);
+		}
+		this.node = function(nodeName,nodeNumber,parentNode,onlyChildNodes){
+			return new XMLNode(nodeName,nodeNumber,parentNode,onlyChildNodes);
+		}
+		return this;
+	};
+	$mx.xml = function(groupName){
+		return new MxXML(groupName);
+	}
+
+	/***
+	 * mxJSSandbox: run JS in sandbox
+	 */
+	var mxJSSandboxProcessCounter = 0;
+	window.__mxFrame__sandboxData = window.__mxFrame__sandboxData ? window.__mxFrame__sandboxData : [];
+	var runJS = function(JSString){
+			if ($mx.configures.debug){
+				console.info('[mxSandbox]run JS code:');
+				console.log(JSString);
 			}
-			for (var key in element.event){
-				var matchChildNode = element.querySelector('[name="' + key + '"],[id="' + key + '"]');
-				if (matchChildNode){
-					matchChildNode.event = element.event[key];
+			var script = document.createElement('script');
+			script.setAttribute('type','text/javascript');
+			script.innerHTML = JSString;
+			document.body.appendChild(script);
+			script.remove();
+		},
+		sandboxJS = function(sandboxData,JSString){
+			var sandboxId = mxJSSandboxProcessCounter;
+			mxJSSandboxProcessCounter++;
+			var sandboxJSString = ';var ';
+			window.__mxFrame__sandboxData[sandboxId] = sandboxData;
+			for (var key in sandboxData){
+				sandboxJSString += key + '=window.__mxFrame__sandboxData[' + sandboxId + ']["' + key + '"],';
+			}
+			sandboxJSString = sandboxJSString.substr(0,sandboxJSString.length - 1) + ';\r\n\r\n\r\n';
+			sandboxJSString += JSString + ';\r\n\r\n\r\n';
+			for (var key in sandboxData){
+				sandboxJSString += 'window.__mxFrame__sandboxData[' + sandboxId + ']["' + key + '"] = ' + key + ';';
+			}
+			runJS(sandboxJSString);
+			sandboxData = window.__mxFrame__sandboxData[sandboxId];
+			window.__mxFrame__sandboxData[sandboxId] = null;
+			return sandboxData;
+		},
+		convertStringToValue = function(JSString,withArea){
+			var result;
+			if (JSString && JSString.replace(/(\t|\s|\r|\n)/gm,'')){
+				if (withArea){
+					runJS('with(' + withArea + '){var __mxFrame__sandboxTemp = '+ JSString + ';}');
+				}else{
+					runJS('var __mxFrame__sandboxTemp = '+ JSString + ';');
+				}
+				var result = __mxFrame__sandboxTemp;
+				__mxFrame__sandboxTemp = null;
+			}
+			return result;
+		};
+	$mx.run = runJS;
+	$mx.sandbox = sandboxJS;
+	$mx.toValue = convertStringToValue;
+
+	/***
+ 	 * mxSelector: jQuery-like selector to boot develop
+ 	 */
+ 	var getContentFromAttribute = function(element,attributeName){
+			return $mx.toValue(element.getAttribute(attributeName));
+		},
+		getContentFromAPIByAttribute = function(element,attributeName){
+			var APIInfo = $mx.toValue(element.getAttribute(attributeName)),
+				APIData = {};
+			if (APIInfo){
+				APIInfo.async = false;
+				APIInfo.success = function(result){
+					APIData = result;
+				};
+				APIInfo.error = function(url){
+					console.warn('[mxRender]Load element data from API fail:');
+					console.log(element);
+				};
+				$mx.ajax(APIInfo);
+				return APIData;
+			}else{
+				return false;
+			}
+		},
+		getClassArray = function(element){
+			return element.className ? element.className.split(' ') : [];
+		},
+		addClass = function(element,className){
+			var classArray = getClassArray(element);
+			if (classArray.indexOf(className) < 0){
+				classArray.push(className);
+				element.className = classArray.join(' ');
+			}
+		},
+		removeClass = function(element,className){
+			var classArray = getClassArray(element),
+				i = classArray.indexOf(className);		
+			if (i > -1){
+				classArray.splice(i,1);
+				element.className = classArray.join(' ');
+				if (!element.className){
+					element.removeAttribute('class');
 				}
 			}
-		}
-		//if you want to scan and init all element with attribute "data".
-		/*for (var i = 0;i < element.childNodes.length;i++){
-			initDataInHTML(element.childNodes[i]);
-		}*/
-		var childNodes = element.querySelectorAll('[mx],item');
-		for (var i = 0;i < childNodes.length;i++){
-			initDataInHTML(childNodes[i]);
-		}
-	},
-	scanElement = function(element){
-		if (element && (element.nodeName == 'ITEM' || (element.attributes && element.attributes['mx']))){
-			loading.add(element);
-			setTimeout(function(){
-				//see who is rendered
-				//console.log(element);
-				initDataInHTML(element,function(){
-					renderElement(element);
-				});
-			});
-		}else{
-			scanChildNodes(element);
-		}
-	},
-	scanChildNodes = function(element){
-		if (element && element.childNodes){
-			for (var i = 0;i < element.childNodes.length;i++){
-				scanElement(element.childNodes[i]);
+		},
+		replaceTextWithObject = function(text,object,lastProperty){
+			var result = text,
+				fullProperty = '';
+			if (result && object){
+				for (var property in object){
+					if (typeof(lastProperty) === 'undefined'){
+						fullProperty = property;
+					}else{
+						fullProperty = lastProperty + '.' + property;
+					}
+					//make sure content is not a HTML element
+					if (typeof(object[property]) === 'object' && !(object[property] && object[property].nodeName)){
+						result = replaceTextWithObject(result,object[property],fullProperty);
+					}else{
+						var reg = new RegExp('\\\{\\\{' + fullProperty + '\\\}\\\}','gm');
+						result = result.replace(reg,object[property]);
+					}
+				}
+				if (result && !lastProperty){result = result.replace(/\{\{.*\}\}/gm,'');};
+				return result;
+			}else{
+				return false;
 			}
-		}
-	},
-	renderElement = function(element){
-		//console.log([element,element.data]);
-		//get basic info
-		var itemName = element.getAttribute('name');
-		if (!itemName){
-			console.info(['[mxFrame]',element,'have no name']);
-			scanChildNodes(element);
-			return false;
-		}
-		element.data.itemName = itemName;
-		var itemId = element.getAttribute('id');
-		if (!itemId){
-			itemId = itemName + '_' + idAutoCounter;
-			element.setAttribute('id',itemId);
-			idAutoCounter++;
-		}
-		element.data.itemId = itemId;
-		renderRecord.onRender.push(itemId);
-		var itemClass = element.getAttribute('class');
-		if (!itemClass){
-			itemClass = itemName;
-			addClass(element,itemClass);
-		}
-		element.data.itemClass = itemClass;
-		
-		var template = $mx.xml.tag(itemName);
-		if (!template[0]){
-			element.setAttribute('no-template','');
-			console.info(['[mxFrame]',element,'have no template "' + itemName + '"']);
-			renderRecord.onRender.splice(renderRecord.onRender.indexOf(itemId),1);
-			scanChildNodes(element);
-			return false;
-		}
+		},
+		humpToHyphen = function(string){
+			return string.replace(/([A-Z])/g,"-$1").toLowerCase(); 
+		},
+		hyphenToHump = function(string){
+			return string.replace(/-(\w)/g,function(x){return x.slice(1).toUpperCase();});
+		},
+		getAttributesObject = function(element){
+			var attributes = element.attributes,
+				result = {};
+			for (var i = 0;i < attributes.length;i++){
+				result[hyphenToHump(attributes[i].name)] = attributes[i].value;
+			}
+			return result;
+		},
+		bindEventToElement = function(element,event,handlerFunction){
+			if (element.addEventListener){
+				element.addEventListener(event,handlerFunction,false);
+			}else if (element.attachEvent){
+				element.attachEvent('on' + event,handlerFunction);
+			}else{
+				element['on' + event] = handlerFunction;
+			}
+		},
+		removeEventFromElement = function(element,event,handlerFunction){
+			if (element.removeEventListner){
+				element.removeEventListener(event,handlerFunction,false);
+			}else if (element.datachEvent){
+				element.detachEvent('on' + event,handlerFunction);
+			}else{
+				element['on' + event] = null;
+			}
+		};
 
-		//default data complete
-		var defaultData = template.child('data')[0] ? getValueFromString(template.child('data').text) : {};
-		element.data = mergeObjects(defaultData,element.data);
+ 	var MxSelector = function(selectQuery,elementNumber){
+ 		if (!document.querySelector(selectQuery)){
+ 			console.warn('[mxSelector]This query can not select any element in this page: "' + selectQuery+ '"');
+ 			return false;
+ 		}
+ 		var MxAttr = function(element,attrName){
+ 				this.text = element.getAttribute(attrName);
+	 			this.value = getContentFromAttribute(element,attrName);
+	 			this.apiValue = getContentFromAPIByAttribute(element,attrName);
+	 			return this;
+	 		},
+	 		MxClass = function(element){
+	 			this.text = this.value = element.getAttribute('class');
+	 			this.classArray = getClassArray(element);
+	 			this.add = function(className){
+	 				addClass(element,className);
+	 			};
+	 			this.remove = function(className){
+	 				removeClass(element,className);
+	 			}
+	 		};
+ 		this.elements = elementNumber ? [document.querySelectorAll(selectQuery)[elementNumber]] : document.querySelectorAll(selectQuery);
+ 		this.first = this.elements[0];
+ 		this.last = this.elements[this.elements.length - 1];
+ 		if (!this.first){
+ 			console.warn('[mxSelector]This query and element order number can not select any element in this page: query:"' + selectQuery+ '", order number:"' + elementNumber + '"');
+ 			return false;
+ 		}
+ 		this.attr = function(attrName){
+ 			return new MxAttr(this.first,attrName);
+ 		}
+ 		this.class = (function(element){
+ 			return new MxClass(element);
+ 		})(this.first);
+ 		this.replaceWithObject = function(object){
+ 			this.first.innerHTML = replaceTextWithObject(this.first.innerHTML,object);
+ 		}
+ 		this.attrs = getAttributesObject(this.first);
+ 		this.addEvent = function(event,handlerFunction){
+ 			bindEventToElement(this.first,event,handlerFunction);
+ 		};
+ 		this.removeEvent = function(event,handlerFunction){
+ 			removeEventFromElement(this.first,event,handlerFunction);
+ 		}
+ 		return this;
+ 	}
 
-		//append CSS
-		if (renderRecord.css.indexOf(itemName) < 0 && template.child('css')[0]){
-			var CSSString = replaceWithObject(template.child('css').text,element.data);
-			publicCSSElement.innerHTML += CSSString;
-			renderRecord.css.push(itemName);
-		}
+ 	$mx.selector = function(selectQuery){
+ 		return new MxSelector(selectQuery);
+ 	}
 
-		//preload once & preload
-		if (renderRecord.preloadOnce.indexOf(itemName) < 0 && template.child('preloadOnce')[0]){
-			element.data = sandboxJS({
-				$this: element,
-				$data: element.data,
-			},
-			template.child('preloadOnce').text
-			)['$data'];
-			renderRecord.preloadOnce.push(itemName);
-		}
-		if (template.child('preload')[0]){
-			element.data = sandboxJS({
-				$this: element,
-				$data: element.data,
-			},
-			template.child('preload').text
-			)['$data'];
-		}
+	/***
+	 * mxRender: item tag auto render
+	 */
+	$mx.render = {};
+	(function($r){
+		var targetItemQuery = (function(){
+				var result = '',
+					renderTags = $mx.configures.renderMark.tags,
+					renderAttributes = $mx.configures.renderMark.attributes;
+				for (var i = 0;i < renderTags.length;i++){
+					result += renderTags[i] + ',';
+				}
+				for (var i = 0;i < renderAttributes.length;i++){
+					result += '[' + renderAttributes[i] + '],';
+				}
+				result = result.substr(0,result.length - 1);
+				return result;
+			})(),
+			headElement = document.getElementsByTagName('head')[0] ? document.getElementsByTagName('head')[0] : (function(){
+				var newHeadElement = document.createElement('head');
+				document.body.appendChild(newHeadElement);
+				return newHeadElement;
+			})(),
+			publicCSSElement = (function(){
+				var newPublicCSSElement = document.createElement('style');
+				headElement.appendChild(newPublicCSSElement);
+				return newPublicCSSElement;
+			})(),
+			loadItemLibraryThread = $mx.signal('mxRender_loadItemlibrary'),
+			itemLibrary = $mx.xml('mxRenderlibrary'),
+			idAutoCounter = 0,
+			renderRecord = {
+				CSS: [],
+			};		
 
-		//complete html content
-		if (template.child('template')[0]){
-			var itemInnerHTML = template.child('template').text.replace(/\{\{html\}\}/gm,element.innerHTML);
-			itemInnerHTML = replaceWithObject(itemInnerHTML,element.data);
-			element.innerHTML = itemInnerHTML;
-		}
+		var processRender = function(element,onlyChildNodes){
+				if (!element){
+					console.warn('[mxRender]Need input an element to be rendered.');
+					return false;
+				}
+				if (!targetItemQuery){
+					console.warn('[mxRender]At least one render target query rule must be set. Please check mxFrame configures. (renderTags, renderAttributes)');
+					return false;
+				}
+				onlyChildNodes = onlyChildNodes ? onlyChildNodes : false;
+				var rootElement = element;
+				
+				var loadLibrary = function(){
+						if (!loadItemLibraryThread.have('loadSuccess')){
+							if ($mx.configures.debug){
+								console.info('[mxRender]Start loading library...');
+							}
+							var itemLibraryList = $mx.configures.itemLibrary;
+							for (var i = 0;i < itemLibraryList.length;i++){
+								var url = itemLibraryList[i];
+								loadItemLibraryThread.add(url);
+								itemLibrary.load(url,function(url){
+									if ($mx.configures.debug){
+										console.info('[mxRender]Load library success: ' + url);
+									}
+									loadItemLibraryThread.remove(url);
+								},function(url){
+									console.warn('[mxRender]Load library fail: ' + url);
+									//Forbid next line if you don't want render start without all library loaded
+									loadItemLibraryThread.remove(url);
+								});
+							}
+							loadItemLibraryThread.empty(function(){
+								if ($mx.configures.debug){
+									console.info('[mxRender]Finish loading library...');
+								}
+								loadItemLibraryThread.add('loadSuccess');
+							});
+						}
+					},
+					createPlaceHoldElement = function(element){
+						//place-hold element with content
+						var newPlaceHoldElement = element.cloneNode(false);
+						newPlaceHoldElement.style = element.style;
+						newPlaceHoldElement.innerHTML = 'Rendering...';
+						newPlaceHoldElement.style.background = '#CCC';
+						newPlaceHoldElement.style.textAlign = 'center';
+						//or you can choose show nothing in place-hold element
+						/*
+						var newPlaceHoldElement = element.cloneNode(false);
+						newPlaceHoldElement.style = element.style;
+						newPlaceHoldElement.innerHTML = '';	
+						*/
+						return newPlaceHoldElement;
+					},
+					startRender = function(element,onlyChildNodes){
+						if (onlyChildNodes){
+							scanElementForDataBinding(rootElement);
+							bindDataThread.empty(function(){
+								scanElementChildNodesForRender(element);
+							});
+						}else{
+							scanElementForDataBinding(rootElement);
+							bindDataThread.empty(function(){
+								scanElementForRender(element);
+							});
+						}
+					},
+					scanElementForDataBinding = function(element){
+						if (element && element.nodeType === 1){
+							var dataBindingId = ['bindData',element];
+							bindDataThread.add(dataBindingId);
+							setTimeout(function(){
+								bindDataToElement(element);
+								bindDataThread.remove(dataBindingId);
+							});
+						}
+						if (element && element.hasChildNodes()){
+							for (var i = 0;i < element.childNodes.length;i++){
+								scanElementForDataBinding(element.childNodes[i]);
+							}
+						}
+					},
+					bindDataToElement = function(element){
+						var separateDataAndEvent = function(attributeObject){
+							var result = {
+								data: {},
+								event: {},
+							};
 
-		//hook event
-		if (template.child('eventHooks')[0]){
-			var eventHooks = getValueFromString(template.child('eventHooks').text);
-			for (var eventName in eventHooks){
-				if (eventName && eventName != 'oncreate' && eventName != 'onshow' && eventName != 'onhide'){
-					var targetItems = element.querySelectorAll(eventHooks[eventName].target);
-					for (var i = 0;i < targetItems.length;i++){
-						var hookFunction = (element.event && element.event[eventName]) ? element.event[eventName] : eventHooks[eventName].do;
-						if (hookFunction){
-							addEvent(targetItems[i],eventHooks[eventName].event,(function(){
-								return function(event){
-									element.data = sandboxJS({
-										$thisItem: element,
-										$this: this,
-										$data: element.data,
-									},
-									'(' + hookFunction.toString() + ')(event)'
-									)['$data'];
-								};
-							})());
-							if (eventHooks[eventName].public){
-								window[eventName] = function(eventFunction){
-									return addEvent(targetItems[i],eventHooks[eventName].event,(function(){
-										return function(event){
-											element.data = sandboxJS({
-												$thisItem: element,
-												$this: this,
-												$data: element.data,
-											},
-											'(' + eventFunction.toString() + ')(event)'
-											)['$data'];
+							for (var key in attributeObject){
+								if (key.substr(0,2) == 'on'){
+									result.event[key.substr(2,key.length - 2)] = $mx.toValue(attributeObject[key]);
+								}else{
+									result.data[key] = attributeObject[key];
+								}
+							}
+							return result;
+						},
+						makeChildNodesInheritData = function(data,element,attributeName){
+							if (data){
+								for (var key in data){
+									if (data[key] && data[key].targetItem && data[key].targetKey && key.substr(0,1) === '$' && key.length > 1){
+										var pinToKey = key.substr(1,key.length - 1),
+											targetElements = element.querySelectorAll(data[key].targetItem),
+											targetKey = data[key].targetKey;
+										for (var i = 0; i < targetElements.length;i++){
+											targetElements[i].mxFrame = targetElements[i].mxFrame ? targetElements[i].mxFrame : {};
+											targetElements[i].mxFrame[attributeName] = targetElements[i].mxFrame[attributeName] ? targetElements[i].mxFrame[attributeName] : {};
+											targetElements[i].mxFrame[attributeName][targetKey] = data[pinToKey];
+										}
+									}
+								}
+							}
+						};
+
+						var dataInAttribute = getContentFromAttribute(element,'data'),
+							eventInAttribute = getContentFromAttribute(element,'event'),
+							dataFromAPI = getContentFromAPIByAttribute(element,'data-api'),
+							eventFromAPI = getContentFromAPIByAttribute(element,'event-api');
+
+						element.mxFrame = element.mxFrame ? element.mxFrame : {};
+						//Edit here to set priorty of data(default: data&event attribute value > other attributes > api > mxFrameObject)
+						//In case it's easy to code, request that get data from API is set to "sync" (will block process until get data)
+						//load large data to element from API or load from API in one element many times in different part is extremely not recommended!!!
+						element.mxFrame.data = mergeObjects(dataInAttribute,mergeObjects(dataFromAPI,element.mxFrame.data));
+						element.mxFrame.event = mergeObjects(eventInAttribute,mergeObjects(eventFromAPI,element.mxFrame.event));
+						element.removeAttribute('data');
+						element.removeAttribute('event');
+						element.removeAttribute('data-api');
+						element.removeAttribute('event-api');
+						var attributeObject = separateDataAndEvent(getAttributesObject(element));
+						element.mxFrame.data = mergeObjects(attributeObject.data,element.mxFrame.data);
+						element.mxFrame.event = mergeObjects(attributeObject.event,element.mxFrame.event);
+						makeChildNodesInheritData(element.mxFrame.data,element,'data');
+						makeChildNodesInheritData(element.mxFrame.event,element,'event');
+					},
+					scanElementForRender = function(element){
+						var scanJobId = ['scan',element];
+						renderThread.add(scanJobId);
+
+						var isTarget = function(element,targetItemQuery){
+							var targetGroup = element.parentNode.querySelectorAll(targetItemQuery);
+							for (var i = 0;i < targetGroup.length;i++){
+								if (element === targetGroup[i]){
+									return true;
+								}
+							}
+							return false;
+						}
+
+						if (element && element.nodeType === 1 && isTarget(element,targetItemQuery)){
+							var renderJobId = ['render',element]; 
+							renderThread.add(renderJobId);
+							setTimeout(function(){
+								renderElement(element);
+								renderThread.remove(renderJobId);
+							});
+						}else{
+							scanElementChildNodesForRender(element);
+						}
+						renderThread.remove(scanJobId);
+					},
+					scanElementChildNodesForRender = function(element){
+						if (element && element.childNodes){
+							for (var i = 0;i < element.childNodes.length;i++){
+								scanElementForRender(element.childNodes[i]);
+							}
+						}
+					},
+					renderElement = function(element){
+						if ($mx.configures.debug){
+							console.info('[mxRender]Start render element:');
+							console.log(element);
+						}
+						//fullfill basic information
+						var templateName = element.getAttribute($mx.configures.templateNameAttribute);
+						if (!templateName){
+							console.warn('[mxRender]Can\'t find template name attribute "' + $mx.configures.templateNameAttribute + '" in element, or this attribute has no value:');
+							console.log(element);
+							startRender(element,true);
+							return false;
+						}
+						element.mxFrame.data.templateName = templateName;
+						var itemName = element.getAttribute('name');
+						if (!itemName){
+							itemName = templateName;
+							element.setAttribute('name',itemName);
+						}
+						var itemId = element.getAttribute('id');
+						if (!itemId){
+							itemId = templateName + '_' + idAutoCounter;
+							element.setAttribute('id',itemId);
+							idAutoCounter++;
+						}
+						addClass(element,templateName);
+						element.mxFrame.data = mergeObjects(getAttributesObject(element),element.mxFrame.data);
+
+						//load template
+						var template = itemLibrary.node(templateName);
+						if (!template || !template.content){
+							element.setAttribute('mxRender-no-template','');
+							console.warn('[mxRender]Can\'t find template "' + templateName + '":');
+							console.log(element);
+							startRender(element,true);
+							return false;
+						}
+
+						//fullfill data with default data in library
+						var defaultData = template.child('data').text;
+						defaultData = $mx.toValue(defaultData);
+						element.mxFrame.data = mergeObjects(defaultData,element.mxFrame.data);
+						
+						//append CSS
+						if (template.child('css').content && renderRecord.CSS.indexOf(templateName) == -1){
+							var CSSString = replaceTextWithObject(template.child('css').text,element.mxFrame.data);
+							publicCSSElement.innerHTML += CSSString;
+							renderRecord.CSS.push(templateName);
+						}
+
+						//event-change methods
+						//(put here in case that preload and callback may edit events)
+						element.mxFrame.event = element.mxFrame.event ? element.mxFrame.event : {};
+						var setEvent = function(element,eventName,handlerFunction){
+								if (element && eventName && typeof(handlerFunction) === 'function'){
+									element.mxFrame.event[eventName.toLowerCase()] = handlerFunction;
+								}
+							},
+							removeEvent = function(element,eventName){
+								if (element && eventName){
+									element.mxFrame.event[eventName.toLowerCase()].remove();
+								}
+							};
+						element.setEvent = function(eventName,handlerFunction){
+							setEvent(element,eventName,handlerFunction);
+						},
+						element.removeEvent = function(eventName){
+							removeEvent(element,eventName);
+						}
+						element.eventList = element.mxFrame.event;
+
+						var setMethod = function(element,methodName,methodFunction,injectFunctions){
+								if (element && methodName && typeof(methodFunction) === 'function'){
+									element[methodName] = function(){
+										var sandboxData = {
+											$this: element,
+											$data: element.mxFrame.data,
+											$mxFrame: element.mxFrame,
 										};
-									})());
+										if (injectFunctions){
+											for (var key in injectFunctions){
+												sandboxData[key] = injectFunctions[key];
+											}
+										}
+										element.mxFrame = $mx.sandbox(
+											sandboxData,
+											'(' + methodFunction.toString() + ')()'
+										)['$mxFrame'];
+									};
+								}
+							},
+							removeMethod = function(element,methodName){
+								if (element && methodName){
+									element[methodName].remove();
+								}
+							},
+							runDefaultEvent = function(element,eventName){
+								element.mxFrame = $mx.sandbox({
+									$this: element,
+									$data: element.mxFrame.data,
+									$mxFrame: element.mxFrame
+								},
+								'(' + element.mxFrame.event[eventName.toLowerCase()].toString() + ')()'
+								)['$mxFrame'];
+							};
+						element.setMethod = function(methodName,methodFunction){
+							setMethod(element,methodName,methodFunction);
+						}
+						element.removeMethod = function(methodName){
+							removeMethod(element,methodName);
+						}
+
+						//preload
+						if (template.child('preload').content){
+							element.mxFrame = $mx.sandbox({
+								$this: element,
+								$data: element.mxFrame.data,
+								$mxFrame: element.mxFrame,
+							},
+							template.child('preload').text
+							)['$mxFrame'];
+						}
+
+						//fill HTML content
+						if (template.child('html').content){
+							var itemInnerHTML = template.child('html').text.replace(/\{\{html\}\}/gm,element.innerHTML);
+							itemInnerHTML = replaceTextWithObject(itemInnerHTML,element.mxFrame.data);
+							element.innerHTML = itemInnerHTML;
+						}
+
+						//callback
+						if (template.child('callback').content){
+							element.mxFrame = $mx.sandbox({
+								$this: element,
+								$data: element.mxFrame.data,
+								$mxFrame: element.mxFrame,
+							},
+							template.child('callback').text
+							)['$mxFrame'];
+						}
+
+						//hook events
+						element.mxFrame.event = element.mxFrame.event ? element.mxFrame.event : {};
+						if (template.child('event').content){
+							var events = $mx.toValue(template.child('event').text);
+							for (var eventName in events){
+								if (eventName.toLowerCase() != 'itemcreate' && eventName.toLowerCase() != 'itemshow' && eventName.toLowerCase() != 'itemhide'){
+									var targetElements = events[eventName].target ? element.querySelectorAll(events[eventName].target) : {};
+									for (var i = 0;i < targetElements.length;i++){
+										element.mxFrame.event[eventName.toLowerCase()] = (element.mxFrame.event && element.mxFrame.event[eventName.toLowerCase()]) ? element.mxFrame.event[eventName.toLowerCase()] : events[eventName].default;
+										bindEventToElement(targetElements[i],events[eventName].event,function(){
+											element.mxFrame = $mx.sandbox({
+												$this: element,
+												$me: this,
+												$data: element.mxFrame.data,
+												$mxFrame: element.mxFrame,
+											},
+											'(' + element.mxFrame.event[eventName.toLowerCase()].toString() + ')()'
+											)['$mxFrame'];
+										});
+									}
+								}else{
+									element.mxFrame.event[eventName.toLowerCase()] = element.mxFrame.event && element.mxFrame.event[eventName.toLowerCase()] ? element.mxFrame.event[eventName.toLowerCase()] : events[eventName].default;
 								}
 							}
 						}
+
+						//create methods
+						//default methods
+						setMethod(element,'hide',function(){
+							if ($this.style.display != 'none'){
+								$mxFrame.lastDisplay =  $this.style.display;
+								$this.style.display = 'none';
+								if (typeof($this.mxFrame.event['itemhide']) === 'function'){
+									runDefaultEvent($this,'itemhide');
+								}
+							}
+						},{
+							runDefaultEvent: runDefaultEvent,
+						});
+						setMethod(element,'show',function(){
+							if ($this.style.display == 'none'){
+								$this.style.display = $mxFrame.lastDisplay ? $mxFrame.lastDisplay : 'block';
+								if (typeof($this.mxFrame.event['itemshow']) === 'function'){
+									runDefaultEvent($this,'itemshow');
+								}
+							}
+						},{
+							runDefaultEvent: runDefaultEvent,
+						});
+						//user define methods
+						if (template.child('method').content){
+							var methods = $mx.toValue(template.child('method').text);
+							for (var methodName in methods){
+								if (!element[methodName]){
+									setMethod(element,methodName,methods[methodName].default);
+								}							
+								var publicMethodName = methods[methodName].public;
+								if (publicMethodName){
+									window[publicMethodName] = window[publicMethodName] ? window[publicMethodName] : function(){
+										element[methodName]();
+									}
+								}
+								
+							}
+						}
+
+						//onCreate
+						if (typeof(element.mxFrame.event['itemcreate']) === 'function'){
+							runDefaultEvent(element,'itemcreate');
+						}
+
+						//onShow(when finish render and show all items)
+						renderThread.when('renderFinish',function(){
+							if (typeof(element.mxFrame.event['itemshow']) === 'function'){
+								runDefaultEvent(element,'itemshow');
+							}
+						});
+
+						//render this rendered item's child nodes, in case of nesting
+						//data in this rendered item will be rebinded
+						startRender(element,true);
+					};
+
+				var bindDataThread = $mx.signal(['mxRender_bindData_',element]),
+					renderThread = $mx.signal(['mxRender_render_',element]),
+					placeHoldElement = createPlaceHoldElement(element),
+					renderFragment = document.createDocumentFragment();
+
+				if (loadItemLibraryThread.have('loadSuccess')){
+					if (!itemLibrary.getContent()){
+						console.warn('[mxRender]No item library loaded. Please make sure at least one library was loaded.');
+						return false;
 					}
+					element.parentNode.insertBefore(placeHoldElement,element);
+					renderFragment.appendChild(element);
+					startRender(element,onlyChildNodes);
+					renderThread.empty(function(){
+						renderThread.add('renderFinish');
+					});
+					renderThread.when('renderFinish',function(){
+						placeHoldElement.parentNode.insertBefore(renderFragment,placeHoldElement);
+						placeHoldElement.remove();
+					});
+				}else{
+					loadLibrary();
+					loadItemLibraryThread.when('loadSuccess',function(){
+						startRender(element,onlyChildNodes);
+					});
 				}
-			}
-			if (eventHooks.oncreate && !element.event.oncreate){element.event.oncreate = eventHooks.oncreate.do;}
-			if (eventHooks.onshow && !element.event.onshow){element.event.onshow = eventHooks.onshow.do;}
-			if (eventHooks.onhide && !element.event.onhide){element.event.onhide = eventHooks.onhide.do;}
-		}
+			};
+			
 
-		//create methods
-			//default methods
-			element.show = function(){
-				if (this.style.display == 'none'){
-					this.style.display = 'block';
-					if (this.event && this.event.onshow){
-						var $this = element,
-							$data = element.data;
-						this.event.onshow();
-					}
-				}
-			}
-			element.hide = function(){
-				if (this.style.display != 'none'){
-					this.style.display = 'none';
-					if (this.event && this.event.onhide){
-						var $this = element,
-							$data = element.data;
-						this.event.onhide();
-					}
-				}
-			}
-			//modified methods
-			if (template.child('methods')[0]){
-				var methods = getValueFromString(template.child('methods').text);
-				for (var methodName in methods){
-					element.data = createMethodInSandbox({
-						$this: element,
-						$data: element.data,
-					},
-					element,
-					methodName,
-					methods[methodName])['$data'];
-				}
-			}
-
-		//register private methods to public
-		if (template.child('public')[0]){
-			var register = getValueFromString(template.child('public').text);
-			for (var publicName in register){
-				window[publicName] = element[register[publicName]];
-			}
+		$r.element = function(element){
+			processRender(element,false);
 		}
-
-		//callback once & callback
-		if (renderRecord.callbackOnce.indexOf(itemName) < 0 && template.child('callbackOnce')[0]){
-			element.data = sandboxJS({
-				$this: element,
-				$data: element.data,
-			},
-			template.child('callbackOnce').text
-			)['$data'];
-			renderRecord.callbackOnce.push(itemName);
+		$r.childNodes = function(element){
+			processRender(element,true);
 		}
-		if (template.child('callback')[0]){
-			element.data = sandboxJS({
-				$this: element,
-				$data: element.data,
-			},
-			template.child('callback').text
-			)['$data'];
-		}
-
-		if (element.event && element.event.oncreate){
-			var $this = element,
-				$data = element.data;
-			element.event.oncreate();
-		}
-
-		//finish
-		initDataInHTML(element,function(){
-			loading.remove(element);
-			scanChildNodes(element);
-		});
-	};
-
-	//Public
-	$f.render = function(element){
-		if (frameStartStatus){
-			startRender(element,true);
-		}else{
-			initFrame(element,true);			
-		}
+	})($mx.render);
+	if ($mx.configures.autoStartRender){
+		$mx.render.element(document.getElementsByTagName('body')[0]);
 	}
-	$f.renderChildNodes = function(element){
-		if (frameStartStatus){
-			startRender(element,false);
-		}else{
-			initFrame(element,false);
-		}
-	}
-	$f.ready = function(readyFunction){
-		mxFrameReadyFunction = readyFunction;
-	}
-	//Auto Start
-	setTimeout(function(){
-		if ($f.configures.autoStart){
-			$f.renderChildNodes(document.body);
-		}
-	});
-})($mx.frame)
-var $f = $f ? $f : $mx.frame;
+})(mxFrame);
+
+var $mx = $mx ? $mx : mxFrame,
+	$$mx = $$mx ? $$mx : $mx.selector;

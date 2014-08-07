@@ -4,22 +4,14 @@
 	</head>
 	<body>
 		<item name = "mxPublic"></item>
-		<item name = "mxMainFrame" event = "{
-			mxHeader:{
-				mxNav:{
-					navClick: function(){
-						alert($this.getAttribute('value'));
-					}
-				},
-			},
-		}">
-			<item mx name = "APIResultDisplay">
-			</item>
+		<item name = "mxMainFrame"
+			logo-text1 = "MXFRAME"
+			logo-text2 = "DEMO">
 		</item>
 	</body>
-	<script src = "js/mx.frame.js"></script>
-	<script src = "js/mx.selector.js"></script>
-	<script>
-		$mx.frame.configures.library.push('library/mxDesign.xml');
-	</script>
 </html>
+<script src = "js/mx.frame.configures.js"></script>
+<script src = "js/mx.frame.js"></script>
+<script>
+
+</script>

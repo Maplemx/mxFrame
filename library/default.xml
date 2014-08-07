@@ -1,30 +1,40 @@
-<mxDesign>
+<mxFrameDefault>	
 	<mxPublic>
 		<css>
 			body{
 				font-size: 16px;
-				font-family: Arial,微软雅黑;
+				font-family: Arial,Microsoft YaHei;
 			}
 		</css>
 	</mxPublic>
+	<!-- Outer Frame -->
 	<mxMainFrame>
 		<data>
 			{
-				mxHeader:{
-					mxLogo:{
-						text1: "MX",
-						text2: "FRAME",
+				logoText1: 'MX',
+				logoText2: 'FRAME',
+				navList: [
+					{
+						text:'INTRO',
+						value:'intro',
 					},
-					mxNav:{
-						list:[
-							"INTRO",
-						],
-					},
+				],
+				$logoText1:{
+					targetItem: '[name = "mxLogo"]',
+					targetKey: 'text1',
+				},
+				$logoText2:{
+					targetItem: '[name = "mxLogo"]',
+					targetKey: 'text2',
+				},
+				$navList:{
+					targetItem: '[name = "mxNav"]',
+					targetKey: 'list',
 				},
 			}
 		</data>
 		<css>
-			.{{itemClass}} .mxHeader{
+			.{{templateName}} .mxHeader{
 				position: fixed;
 				top: 0;
 				left: 0;
@@ -32,7 +42,7 @@
 				display: block;
 				line-height: 4em;
 			}
-			.{{itemClass}} .mxContent{
+			.{{templateName}} .mxContent{
 				position: fixed;
 				top: 0;
 				left: 0;
@@ -40,8 +50,9 @@
 				height: 100%;
 				display: block;
 				overflow: auto;
+				text-align: center;
 			}
-			.{{itemClass}} .mxTailer{
+			.{{templateName}} .mxTailer{
 				position: fixed;
 				bottom: 0;
 				left: 0;
@@ -51,7 +62,7 @@
 				text-align: center;
 			}
 		</css>
-		<template>
+		<html>
 			<![CDATA[
 				<item name = "mxContent">
 					{{html}}
@@ -61,30 +72,27 @@
 				<item name = "mxTailer">
 				</item>
 			]]>
-		</template>
+		</html>
 		<mxHeader>
 			<css>
-				.{{itemClass}}{
+				.{{templateName}}{
 					border-bottom: 1px #000 solid;
 					box-shadow: 0px 1px 3px #333;
 					background: #333;
 					padding: 0 1em 0 1em;
 				}
 			</css>
-			<preload>
-				//console.log($data);
-			</preload>
-			<template>
+			<html>
 				<![CDATA[
 					<item name = "mxLogo">
 					</item>
 					<item name = "mxNav">
 					</item>
 				]]>
-			</template>
+			</html>
 			<mxLogo>
 				<css>
-					.{{itemClass}}{
+					.{{templateName}}{
 						font-size: 180%;
 						float: left;
 						display: inline-block;
@@ -94,26 +102,26 @@
 						font-weight: bold;
 					}
 				</css>
-				<template>
+				<html>
 					<![CDATA[
 						<span style = "color: #FF3333">{{text1}}</span><span style = "color: #DDD">{{text2}}</span>
 					]]>
-				</template>
+				</html>
 			</mxLogo>
 			<mxNav>
 				<css>
-					.{{itemClass}}{
+					.{{templateName}}{
 						display: inline-block;
 						float: left;
 						margin: 0;
 						padding: 0;
 					}
-					.{{itemClass}} ul{
+					.{{templateName}} ul{
 						list-style: none;
 						margin: 0;
 						padding: 0;
 					}
-					.{{itemClass}} ul li{
+					.{{templateName}} ul li{
 						display: inline-block;
 						min-width: 60px;
 						color: #FFF;
@@ -121,55 +129,61 @@
 						font-weight: bold;
 						padding: 0 0.5em 0 0.5em;
 					}
-					.{{itemClass}} ul li:hover{
+					.{{templateName}} ul li:hover{
 						background: #666;
 						cursor: pointer;
 					}
 				</css>
-				<eventHooks>
+				<event>
+					<![CDATA[
 					{
 						navClick:{
 							target: '#navList li',
 							event: 'click',
-							do: function(){
-								console.log($this.getAttribute('value'));
-							}
+							default: function(){
+									var mxContent = document.querySelector('[name="mxContent"]');
+									mxContent.innerHTML = '<item name = "'+ $me.getAttribute('value') +'"></item>';
+									$mx.render.element(mxContent);
+								}
 						},
 					}
-				</eventHooks>
+					]]>
+				</event>
 				<preload>
 					<![CDATA[
-						var preloadHTML = '<ul id = "navList">';
+						var navListHTML = '<ul id = "navList">';
 						for (var i = 0;i < $data.list.length;i++){
-							preloadHTML += '<li value = "' + $data.list[i] + '">' + $data.list[i] + '</li>';
+							navListHTML += '<li value = "' + $data.list[i].value + '">' + $data.list[i].text + '</li>';
 						}
-						preloadHTML += '</ul>';
-						$data.preloadHTML = preloadHTML;
+						navListHTML += '</ul>';
+						$data.navListHTML = navListHTML;
 					]]>
 				</preload>
-				<template>
-					{{preloadHTML}}
-				</template>
+				<html>
+					<![CDATA[
+						{{navListHTML}}
+					]]>
+				</html>
 			</mxNav>
 		</mxHeader>
 		<mxContent>
 			<css>
-				.{{itemClass}} .contentContainer{
+				.{{templateName}} .contentContainer{
 					margin: 5em 1% 2em 1%;
 					width: 98%;
 				}
 			</css>
-			<template>
+			<html>
 				<![CDATA[
 					<div class = "contentContainer">
 						{{html}}
 					</div>
 				]]>
-			</template>
+			</html>
 		</mxContent>
 		<mxTailer>
 			<css>
-				.{{itemClass}}{
+				.{{templateName}}{
 					border-top: 1px #CCC dashed;
 					background: #DDD;
 					color: #999;
@@ -177,11 +191,11 @@
 					text-shadow:0px 1px 1px #FFF;
 				}
 			</css>
-			<template>
+			<html>
 				<![CDATA[
 					· Powered By mxFrame v0.5.1 · {{html}}
 				]]>
-			</template>
+			</html>
 		</mxTailer>
 	</mxMainFrame>
-</mxDesign>
+</mxFrameDefault>
