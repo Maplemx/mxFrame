@@ -3,5 +3,5 @@ mxFrame.configures = {
 	debug: false,
 	renderTags: ['item'],
 	renderAttributes: [],
-	itemLibrary: ['library/default.xml','library/test.xml'],
+	itemLibrary: ['library/default.xml'],
 }
